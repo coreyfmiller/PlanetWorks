@@ -354,15 +354,39 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
 }
 
 function AnimatedWater() {
+  const ref = useRef<THREE.Mesh>(null)
+
+  // Load the Three.js water normal map from the package
+  const normalMap = useMemo(() => {
+    const loader = new THREE.TextureLoader()
+    const tex = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/waternormals.jpg')
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.RepeatWrapping
+    tex.repeat.set(6, 6)
+    return tex
+  }, [])
+
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      const mat = ref.current.material as THREE.MeshStandardMaterial
+      if (mat.normalMap) {
+        mat.normalMap.offset.x = clock.elapsedTime * 0.005
+        mat.normalMap.offset.y = clock.elapsedTime * 0.003
+      }
+    }
+  })
+
   return (
-    <mesh>
+    <mesh ref={ref}>
       <sphereGeometry args={[3.02, 64, 64]} />
-      <meshPhongMaterial
-        color="#1a7fc4"
+      <meshStandardMaterial
+        color="#1878b8"
+        normalMap={normalMap}
+        normalScale={new THREE.Vector2(0.15, 0.15)}
         transparent
-        opacity={0.5}
-        shininess={40}
-        specular={new THREE.Color('#446688')}
+        opacity={0.6}
+        roughness={0.2}
+        metalness={0.05}
       />
     </mesh>
   )
