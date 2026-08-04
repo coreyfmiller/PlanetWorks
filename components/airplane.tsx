@@ -130,7 +130,6 @@ export function Airplane() {
 
     // --- CAMERA ---
     // Camera directly behind the tail, looking over the nose
-    // "Behind" = opposite of the plane's forward direction
     const behindDir = localForward.clone().negate()
     const camPos = position.clone()
       .add(behindDir.multiplyScalar(2.8))
@@ -142,7 +141,16 @@ export function Airplane() {
     s.camTarget.lerp(lookAhead, dt * 4)
 
     camera.position.copy(s.camPos)
-    camera.lookAt(s.camTarget)
+
+    // Set camera orientation WITHOUT lookAt to avoid gimbal flips
+    // Build a rotation matrix from the plane's axes (camera shares the plane's frame)
+    const camForward = s.camTarget.clone().sub(s.camPos).normalize()
+    const camRight = new THREE.Vector3().crossVectors(camForward, localUp).normalize()
+    const camUp = new THREE.Vector3().crossVectors(camRight, camForward).normalize()
+
+    const camMatrix = new THREE.Matrix4()
+    camMatrix.makeBasis(camRight, camUp, camForward.negate())
+    camera.quaternion.setFromRotationMatrix(camMatrix)
   })
 
   return (
