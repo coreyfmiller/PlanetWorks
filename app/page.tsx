@@ -59,6 +59,8 @@ export default function Home() {
             enablePan={false}
             minDistance={4.5}
             maxDistance={15}
+            minPolarAngle={0}
+            maxPolarAngle={Math.PI}
             autoRotate
             autoRotateSpeed={0.2}
             enableDamping
