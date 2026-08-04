@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, TrackballControls } from '@react-three/drei'
+import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
@@ -55,11 +55,16 @@ export default function Home() {
         {flyMode ? (
           <Airplane />
         ) : (
-          <TrackballControls
-            noPan
+          <OrbitControls
+            enablePan={false}
             minDistance={4.5}
             maxDistance={15}
-            dynamicDampingFactor={0.1}
+            minPolarAngle={0.05}
+            maxPolarAngle={Math.PI - 0.05}
+            autoRotate
+            autoRotateSpeed={0.2}
+            enableDamping
+            dampingFactor={0.05}
           />
         )}
       </Canvas>
