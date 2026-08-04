@@ -26,7 +26,7 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance
 
   // Set camera at fixed position looking at center
   useEffect(() => {
-    camera.position.set(0, 0, state.current.distance)
+    camera.position.set(0, 3, 7)
     camera.lookAt(0, 0, 0)
   }, [camera])
 
@@ -111,12 +111,11 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance
       }
     }
 
-    // Apply rotation to the scene's first child group (the planet)
-    // We find the planet group and rotate it
+    // Apply rotation to scene
     scene.quaternion.copy(s.rotation)
 
-    // Update camera distance
-    camera.position.set(0, 0, s.distance)
+    // Update camera distance (keep slight elevation for nice view)
+    camera.position.set(0, s.distance * 0.35, s.distance * 0.9)
     camera.lookAt(0, 0, 0)
   })
 
