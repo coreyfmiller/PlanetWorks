@@ -16,7 +16,7 @@ export default function Home() {
   const [stars, setStars] = useState(false)
   const [dramaticLighting, setDramaticLighting] = useState(false)
   const [wideBeach, setWideBeach] = useState(true)
-  const [cloudPuffs, setCloudPuffs] = useState(true)
+  const [cloudPuffs, setCloudPuffs] = useState(false)
   const [dayNight, setDayNight] = useState(false)
   const [boat, setBoat] = useState(true)
   const [birds, setBirds] = useState(true)
