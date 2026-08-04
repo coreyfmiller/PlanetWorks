@@ -376,87 +376,66 @@ function AnimatedWater() {
 function WaveLines() {
   const ref = useRef<THREE.Mesh>(null)
 
-  const texture = useMemo(() => {
+  const normalMap = useMemo(() => {
+    const size = 512
     const canvas = document.createElement('canvas')
-    canvas.width = 1024
-    canvas.height = 1024
+    canvas.width = size
+    canvas.height = size
     const ctx = canvas.getContext('2d')!
+    const imageData = ctx.createImageData(size, size)
+    const data = imageData.data
 
-    ctx.clearRect(0, 0, 1024, 1024)
+    // Generate a tileable wave normal map
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const idx = (y * size + x) * 4
 
-    // Noise function for organic curves
-    function simpNoise(x: number, y: number): number {
-      return Math.sin(x * 0.8 + Math.sin(y * 0.6)) * Math.cos(y * 0.7 + Math.sin(x * 0.5))
-    }
+        // Multiple octaves of sine waves at different scales and angles
+        const s1 = Math.sin(x * 0.05 + Math.sin(y * 0.03) * 2) * 0.4
+        const s2 = Math.sin(y * 0.07 + Math.sin(x * 0.04) * 1.5) * 0.3
+        const s3 = Math.sin((x + y) * 0.04 + Math.sin(x * 0.02) * 3) * 0.2
+        const s4 = Math.sin((x * 0.12) + (y * 0.08)) * 0.15
+        const s5 = Math.sin(x * 0.2 + y * 0.15) * Math.cos(y * 0.18 - x * 0.1) * 0.1
 
-    // Layer 1: Primary wave lines flowing in one direction
-    ctx.strokeStyle = 'rgba(180, 220, 255, 0.09)'
-    ctx.lineWidth = 1.2
-    for (let i = -200; i < 1224; i += 16) {
-      ctx.beginPath()
-      const offsetX = simpNoise(i * 0.01, 0) * 30
-      ctx.moveTo(i + offsetX, 0)
-      for (let y = 0; y < 1024; y += 4) {
-        const drift = simpNoise(i * 0.008, y * 0.005) * 25 + Math.sin(y * 0.015 + i * 0.003) * 12
-        ctx.lineTo(i + drift + offsetX, y)
+        // Compute normal from height derivatives
+        const hx = s1 + s2 * 0.5 + s3 + s4 + s5
+        const hx2 = Math.sin((x + 1) * 0.05 + Math.sin(y * 0.03) * 2) * 0.4 +
+                    Math.sin(y * 0.07 + Math.sin((x + 1) * 0.04) * 1.5) * 0.3 +
+                    Math.sin(((x + 1) + y) * 0.04 + Math.sin((x + 1) * 0.02) * 3) * 0.2 +
+                    Math.sin(((x + 1) * 0.12) + (y * 0.08)) * 0.15 +
+                    Math.sin((x + 1) * 0.2 + y * 0.15) * Math.cos(y * 0.18 - (x + 1) * 0.1) * 0.1
+        const hy2 = Math.sin(x * 0.05 + Math.sin((y + 1) * 0.03) * 2) * 0.4 +
+                    Math.sin((y + 1) * 0.07 + Math.sin(x * 0.04) * 1.5) * 0.3 +
+                    Math.sin((x + (y + 1)) * 0.04 + Math.sin(x * 0.02) * 3) * 0.2 +
+                    Math.sin((x * 0.12) + ((y + 1) * 0.08)) * 0.15 +
+                    Math.sin(x * 0.2 + (y + 1) * 0.15) * Math.cos((y + 1) * 0.18 - x * 0.1) * 0.1
+
+        const dx = (hx2 - hx) * 3
+        const dy = (hy2 - hx) * 3
+
+        // Encode normal into RGB (normal map convention: R=x, G=y, B=z)
+        data[idx] = Math.floor((dx * 0.5 + 0.5) * 255)
+        data[idx + 1] = Math.floor((dy * 0.5 + 0.5) * 255)
+        data[idx + 2] = 200 // Z component (mostly pointing up)
+        data[idx + 3] = 255
       }
-      ctx.stroke()
     }
 
-    // Layer 2: Cross waves at slight angle, softer
-    ctx.strokeStyle = 'rgba(200, 240, 255, 0.06)'
-    ctx.lineWidth = 1
-    for (let i = -200; i < 1224; i += 24) {
-      ctx.beginPath()
-      const offsetY = simpNoise(0, i * 0.012) * 20
-      ctx.moveTo(0, i + offsetY)
-      for (let x = 0; x < 1024; x += 4) {
-        const drift = simpNoise(x * 0.006, i * 0.009) * 20 + Math.sin(x * 0.012 + i * 0.004) * 10
-        ctx.lineTo(x, i + drift + offsetY)
-      }
-      ctx.stroke()
-    }
-
-    // Layer 3: Very subtle large swells (wide, gentle curves)
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)'
-    ctx.lineWidth = 3
-    for (let i = -100; i < 1124; i += 60) {
-      ctx.beginPath()
-      ctx.moveTo(i, 0)
-      for (let y = 0; y < 1024; y += 6) {
-        const drift = Math.sin(y * 0.008 + i * 0.002) * 40 + simpNoise(i * 0.004, y * 0.003) * 20
-        ctx.lineTo(i + drift, y)
-      }
-      ctx.stroke()
-    }
-
-    // Layer 4: Tiny ripple details (dense, very faint)
-    ctx.strokeStyle = 'rgba(220, 245, 255, 0.04)'
-    ctx.lineWidth = 0.5
-    for (let i = 0; i < 1024; i += 9) {
-      ctx.beginPath()
-      const startY = simpNoise(i * 0.05, 0) * 50
-      ctx.moveTo(i, startY)
-      for (let y = startY; y < startY + 80 + Math.random() * 60; y += 3) {
-        const drift = Math.sin(y * 0.08 + i * 0.02) * 4
-        ctx.lineTo(i + drift, y)
-      }
-      ctx.stroke()
-    }
+    ctx.putImageData(imageData, 0, 0)
 
     const tex = new THREE.CanvasTexture(canvas)
     tex.wrapS = THREE.RepeatWrapping
     tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(2, 2)
+    tex.repeat.set(4, 4)
     return tex
   }, [])
 
   useFrame(({ clock }) => {
     if (ref.current) {
-      const mat = ref.current.material as THREE.MeshBasicMaterial
-      if (mat.map) {
-        mat.map.offset.x = clock.elapsedTime * 0.01
-        mat.map.offset.y = clock.elapsedTime * 0.008
+      const mat = ref.current.material as THREE.MeshStandardMaterial
+      if (mat.normalMap) {
+        mat.normalMap.offset.x = clock.elapsedTime * 0.008
+        mat.normalMap.offset.y = clock.elapsedTime * 0.006
       }
     }
   })
@@ -464,11 +443,14 @@ function WaveLines() {
   return (
     <mesh ref={ref}>
       <sphereGeometry args={[3.025, 64, 64]} />
-      <meshBasicMaterial
-        map={texture}
+      <meshStandardMaterial
+        color="#1a7fc4"
+        normalMap={normalMap}
+        normalScale={new THREE.Vector2(0.3, 0.3)}
         transparent
-        opacity={0.6}
-        depthWrite={false}
+        opacity={0.55}
+        roughness={0.3}
+        metalness={0.1}
       />
     </mesh>
   )
