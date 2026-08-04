@@ -177,9 +177,10 @@ export function Planet() {
         }
       } else {
         const shallowFactor = Math.max(0, (influence + 0.1)) * 4
-        colors[i * 3] = 0.02 + shallowFactor * 0.15
-        colors[i * 3 + 1] = 0.1 + shallowFactor * 0.35
-        colors[i * 3 + 2] = 0.35 + shallowFactor * 0.25
+        // Deep = medium ocean blue, Shallow = bright turquoise
+        colors[i * 3] = 0.04 + shallowFactor * 0.2
+        colors[i * 3 + 1] = 0.15 + shallowFactor * 0.5
+        colors[i * 3 + 2] = 0.35 + shallowFactor * 0.35
       }
     }
 
@@ -357,11 +358,11 @@ function AnimatedWater() {
     <mesh>
       <sphereGeometry args={[3.02, 64, 64]} />
       <meshPhongMaterial
-        color="#1a85c4"
+        color="#1a7fc4"
         transparent
-        opacity={0.55}
-        shininess={100}
-        specular={new THREE.Color('#88ccff')}
+        opacity={0.5}
+        shininess={40}
+        specular={new THREE.Color('#446688')}
       />
     </mesh>
   )
