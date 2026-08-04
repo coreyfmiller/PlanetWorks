@@ -5,37 +5,31 @@ import { useThree, useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
 /**
- * Custom orbit controller with NO gimbal lock.
- * Rotates camera around (0,0,0) using quaternions.
- * Smooth damping on release.
+ * Pole-free globe controller.
+ * Instead of orbiting the camera, we ROTATE THE SCENE.
+ * Camera stays fixed looking at center. Globe spins freely.
+ * No gimbal lock possible because we use quaternion rotation on the scene.
  */
-export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed = 0.2 }) {
-  const { camera, gl } = useThree()
+export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance?: number; maxDistance?: number }) {
+  const { camera, gl, scene } = useThree()
 
   const state = useRef({
     isDragging: false,
     prevX: 0,
     prevY: 0,
-    // Velocity for momentum/damping
     velocityX: 0,
     velocityY: 0,
-    // Zoom velocity
-    zoomVelocity: 0,
     distance: 8,
-    // Camera orientation as quaternion (no poles!)
-    orientation: new THREE.Quaternion(),
+    // The globe's rotation as a quaternion
+    rotation: new THREE.Quaternion(),
   })
 
-  // Initialize orientation from current camera position
+  // Set camera at fixed position looking at center
   useEffect(() => {
-    const dir = camera.position.clone().normalize()
-    const up = new THREE.Vector3(0, 1, 0)
-    const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), dir.negate(), up)
-    state.current.orientation.setFromRotationMatrix(m)
-    state.current.distance = camera.position.length()
+    camera.position.set(0, 0, state.current.distance)
+    camera.lookAt(0, 0, 0)
   }, [camera])
 
-  // Mouse/touch handlers
   useEffect(() => {
     const canvas = gl.domElement
 
@@ -43,8 +37,6 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
       state.current.isDragging = true
       state.current.prevX = e.clientX
       state.current.prevY = e.clientY
-      state.current.velocityX = 0
-      state.current.velocityY = 0
     }
 
     const onPointerMove = (e: PointerEvent) => {
@@ -54,12 +46,10 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
       state.current.prevX = e.clientX
       state.current.prevY = e.clientY
 
-      // Convert pixel movement to rotation speed
-      const sensitivity = 0.004
-      state.current.velocityX = -dx * sensitivity
-      state.current.velocityY = -dy * sensitivity
+      const sensitivity = 0.005
+      state.current.velocityX = dx * sensitivity
+      state.current.velocityY = dy * sensitivity
 
-      // Apply rotation immediately while dragging
       applyRotation(state.current.velocityX, state.current.velocityY)
     }
 
@@ -69,7 +59,8 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
-      state.current.zoomVelocity += e.deltaY * 0.003
+      state.current.distance += e.deltaY * 0.005
+      state.current.distance = Math.max(minDistance, Math.min(maxDistance, state.current.distance))
     }
 
     canvas.addEventListener('pointerdown', onPointerDown)
@@ -85,59 +76,48 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
       canvas.removeEventListener('pointerleave', onPointerUp)
       canvas.removeEventListener('wheel', onWheel)
     }
-  }, [gl])
+  }, [gl, minDistance, maxDistance])
 
-  function applyRotation(rx: number, ry: number) {
+  function applyRotation(dx: number, dy: number) {
     const s = state.current
 
-    // The key to no-pole rotation:
-    // Use the SCREEN axes (camera's actual current right and up) as rotation axes.
-    // This means dragging always does what you expect visually.
-    
-    const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
-    const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion)
+    // Rotate the globe around SCREEN axes
+    // Horizontal drag = rotate around world Y (screen up)
+    // Vertical drag = rotate around world X (screen right)
+    // Because the camera is fixed, these never change. No poles.
+    const qX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx)
+    const qY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy)
 
-    const qX = new THREE.Quaternion().setFromAxisAngle(cameraUp, rx)
-    const qY = new THREE.Quaternion().setFromAxisAngle(cameraRight, ry)
-
-    s.orientation.premultiply(qY)
-    s.orientation.premultiply(qX)
-    s.orientation.normalize()
+    s.rotation.premultiply(qX)
+    s.rotation.premultiply(qY)
+    s.rotation.normalize()
   }
 
   useFrame((_, delta) => {
     const s = state.current
     const dt = Math.min(delta, 0.05)
 
-    // Apply momentum when not dragging
+    // Momentum when not dragging
     if (!s.isDragging) {
       if (Math.abs(s.velocityX) > 0.0001 || Math.abs(s.velocityY) > 0.0001) {
-        applyRotation(s.velocityX * 0.3, s.velocityY * 0.3)
+        applyRotation(s.velocityX, s.velocityY)
       }
-      // Damping
-      s.velocityX *= 0.92
-      s.velocityY *= 0.92
+      s.velocityX *= 0.95
+      s.velocityY *= 0.95
 
       // Auto rotate when idle
-      if (Math.abs(s.velocityX) < 0.0001 && Math.abs(s.velocityY) < 0.0001) {
-        applyRotation(autoRotateSpeed * dt * 0.05, 0)
+      if (Math.abs(s.velocityX) < 0.0002 && Math.abs(s.velocityY) < 0.0002) {
+        applyRotation(dt * 0.15, 0)
       }
     }
 
-    // Zoom
-    s.distance += s.zoomVelocity
-    s.distance = Math.max(minDistance, Math.min(maxDistance, s.distance))
-    s.zoomVelocity *= 0.85
+    // Apply rotation to the scene's first child group (the planet)
+    // We find the planet group and rotate it
+    scene.quaternion.copy(s.rotation)
 
-    // Apply orientation to camera position
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.orientation)
-    camera.position.copy(forward.multiplyScalar(s.distance))
-    
-    // Set camera rotation directly from quaternion - NO lookAt (which causes flips)
-    camera.quaternion.copy(s.orientation)
-    // Flip to look inward (camera looks -Z by default, we want it looking at center)
-    const flipQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI)
-    camera.quaternion.multiply(flipQ)
+    // Update camera distance
+    camera.position.set(0, 0, s.distance)
+    camera.lookAt(0, 0, 0)
   })
 
   return null
