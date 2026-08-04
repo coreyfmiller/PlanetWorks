@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
@@ -53,6 +53,9 @@ export default function Home() {
           biggerTrees={biggerTrees}
         />
 
+        {flyMode ? (
+          <SceneReset />
+        ) : null}
         {flyMode ? (
           <Airplane />
         ) : (
@@ -121,6 +124,12 @@ export default function Home() {
       </div>
     </div>
   )
+}
+
+function SceneReset() {
+  const { scene } = useThree()
+  scene.quaternion.identity()
+  return null
 }
 
 function Toggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
