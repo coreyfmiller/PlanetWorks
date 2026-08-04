@@ -9,26 +9,42 @@ export function Airplane() {
   const propellerRef = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
 
-  // Flight state
+  // Flight state using quaternion-based movement
   const state = useRef({
-    // Position on unit sphere (theta, phi)
-    theta: 0,
-    phi: Math.PI / 2,
-    // Heading direction (angle on the surface)
+    // Position as a quaternion rotation from "north pole"
+    orientation: new THREE.Quaternion(),
+    // Heading: rotation around the local up axis
     heading: 0,
-    // Altitude above planet
-    altitude: 3.4,
-    // Speed
-    speed: 0.4,
-    // Banking
+    // Altitude above planet surface
+    altitude: 3.5,
+    // Speed (radians per second around the sphere)
+    speed: 0.35,
+    // Visual banking angle
     bank: 0,
+    // Visual pitch
+    pitch: 0,
     // Input
     keys: {} as Record<string, boolean>,
+    // Camera position for smoothing
+    camPos: new THREE.Vector3(0, 4, 9),
+    camTarget: new THREE.Vector3(0, 0, 0),
   })
+
+  // Initialize starting position
+  useEffect(() => {
+    // Start at a point on the equator
+    const startDir = new THREE.Vector3(1, 0, 0).normalize()
+    const up = new THREE.Vector3(0, 1, 0)
+    state.current.orientation.setFromUnitVectors(up, startDir)
+  }, [])
 
   // Keyboard listeners
   useEffect(() => {
-    const onDown = (e: KeyboardEvent) => { state.current.keys[e.code] = true }
+    const onDown = (e: KeyboardEvent) => {
+      state.current.keys[e.code] = true
+      // Prevent space from scrolling
+      if (e.code === 'Space') e.preventDefault()
+    }
     const onUp = (e: KeyboardEvent) => { state.current.keys[e.code] = false }
     window.addEventListener('keydown', onDown)
     window.addEventListener('keyup', onUp)
@@ -42,151 +58,204 @@ export function Airplane() {
     if (!groupRef.current) return
     const s = state.current
     const keys = s.keys
-
-    // Clamp delta to avoid jumps
     const dt = Math.min(delta, 0.05)
 
-    // Turn
-    const turnRate = 1.2
+    // --- INPUT ---
+    const turnRate = 1.5
     let targetBank = 0
+    let targetPitch = 0
+
     if (keys['KeyA'] || keys['ArrowLeft']) {
-      s.heading -= turnRate * dt
-      targetBank = 0.5
+      s.heading += turnRate * dt
+      targetBank = 0.4
     }
     if (keys['KeyD'] || keys['ArrowRight']) {
-      s.heading += turnRate * dt
-      targetBank = -0.5
+      s.heading -= turnRate * dt
+      targetBank = -0.4
     }
-
-    // Speed
     if (keys['KeyW'] || keys['ArrowUp']) {
-      s.speed = Math.min(s.speed + dt * 0.3, 1.2)
+      s.speed = Math.min(s.speed + dt * 0.4, 1.5)
     }
     if (keys['KeyS'] || keys['ArrowDown']) {
-      s.speed = Math.max(s.speed - dt * 0.3, 0.15)
+      s.speed = Math.max(s.speed - dt * 0.4, 0.15)
     }
-
-    // Altitude
     if (keys['Space']) {
-      s.altitude = Math.min(s.altitude + dt * 0.5, 5.0)
+      s.altitude = Math.min(s.altitude + dt * 0.6, 5.5)
+      targetPitch = -0.15
     }
     if (keys['ShiftLeft'] || keys['ShiftRight']) {
-      s.altitude = Math.max(s.altitude - dt * 0.5, 3.15)
+      s.altitude = Math.max(s.altitude - dt * 0.6, 3.15)
+      targetPitch = 0.15
     }
 
-    // Smooth banking
-    s.bank += (targetBank - s.bank) * dt * 5
+    // Smooth banking and pitch
+    s.bank += (targetBank - s.bank) * dt * 4
+    s.pitch += (targetPitch - s.pitch) * dt * 3
 
-    // Move along the sphere surface
-    const moveSpeed = s.speed * dt * 0.3
-    s.theta += Math.sin(s.heading) * moveSpeed
-    s.phi += Math.cos(s.heading) * moveSpeed
-
-    // Clamp phi
-    s.phi = Math.max(0.1, Math.min(Math.PI - 0.1, s.phi))
-
-    // Compute world position from spherical coords
-    const px = s.altitude * Math.sin(s.phi) * Math.cos(s.theta)
-    const py = s.altitude * Math.cos(s.phi)
-    const pz = s.altitude * Math.sin(s.phi) * Math.sin(s.theta)
-
-    groupRef.current.position.set(px, py, pz)
-
-    // Orient the plane: "up" is away from planet center
-    const up = new THREE.Vector3(px, py, pz).normalize()
-
-    // Forward direction on the sphere surface
-    const forward = new THREE.Vector3(
-      Math.sin(s.phi) * Math.cos(s.theta + 0.01) - Math.sin(s.phi) * Math.cos(s.theta),
-      Math.cos(s.phi + 0.01 * Math.cos(s.heading)) - Math.cos(s.phi),
-      Math.sin(s.phi) * Math.sin(s.theta + 0.01) - Math.sin(s.phi) * Math.sin(s.theta),
-    ).normalize()
-
-    // Build orientation matrix
-    const right = new THREE.Vector3().crossVectors(forward, up).normalize()
-    const correctedForward = new THREE.Vector3().crossVectors(up, right).normalize()
-
-    const matrix = new THREE.Matrix4()
-    matrix.makeBasis(right, up, correctedForward)
-
-    // Apply heading rotation around up axis
-    const headingQuat = new THREE.Quaternion().setFromAxisAngle(up, -s.heading)
-    groupRef.current.quaternion.setFromRotationMatrix(matrix)
-    groupRef.current.quaternion.premultiply(headingQuat)
-
-    // Apply banking
-    const bankQuat = new THREE.Quaternion().setFromAxisAngle(
-      correctedForward.applyQuaternion(headingQuat),
-      s.bank
+    // --- MOVEMENT ---
+    // Move forward: rotate the orientation quaternion around the local "right" axis
+    // This moves the plane along the sphere surface
+    const moveAmount = s.speed * dt * 0.15
+    const forwardRotation = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(1, 0, 0), moveAmount
     )
-    groupRef.current.quaternion.multiply(bankQuat)
+    s.orientation.multiply(forwardRotation)
+    s.orientation.normalize()
 
-    // Spin propeller
+    // Apply heading: rotate around local "up" (Y axis in local space)
+    const headingQuat = new THREE.Quaternion().setFromAxisAngle(
+      new THREE.Vector3(0, 1, 0), s.heading
+    )
+
+    // Full orientation = base orientation * heading
+    const fullOrientation = s.orientation.clone().multiply(headingQuat)
+
+    // --- POSITION ---
+    // Position is: rotate the "up" vector by our orientation, then scale by altitude
+    const upVec = new THREE.Vector3(0, 1, 0)
+    const position = upVec.clone().applyQuaternion(s.orientation).multiplyScalar(s.altitude)
+
+    groupRef.current.position.copy(position)
+
+    // --- ORIENTATION OF THE PLANE ---
+    // The plane's "up" points away from planet
+    const planeUp = position.clone().normalize()
+
+    // Forward direction: derived from the full orientation
+    const planeForward = new THREE.Vector3(0, 0, 1).applyQuaternion(fullOrientation).normalize()
+
+    // Make forward perpendicular to up (project onto tangent plane)
+    planeForward.sub(planeUp.clone().multiplyScalar(planeForward.dot(planeUp))).normalize()
+
+    // Right vector
+    const planeRight = new THREE.Vector3().crossVectors(planeForward, planeUp).normalize()
+
+    // Build rotation matrix from these axes
+    const rotMatrix = new THREE.Matrix4()
+    rotMatrix.makeBasis(planeRight, planeUp, planeForward)
+    groupRef.current.quaternion.setFromRotationMatrix(rotMatrix)
+
+    // Apply visual banking (roll around forward axis)
+    const bankQuat = new THREE.Quaternion().setFromAxisAngle(planeForward, s.bank)
+    groupRef.current.quaternion.premultiply(bankQuat)
+
+    // Apply visual pitch (tilt around right axis)
+    const pitchQuat = new THREE.Quaternion().setFromAxisAngle(planeRight, s.pitch)
+    groupRef.current.quaternion.premultiply(pitchQuat)
+
+    // --- PROPELLER ---
     if (propellerRef.current) {
-      propellerRef.current.rotation.z += dt * s.speed * 30
+      propellerRef.current.rotation.z += dt * s.speed * 35
     }
 
-    // Camera follow - behind and above the plane
-    const camOffset = up.clone().multiplyScalar(0.8)
-      .add(correctedForward.clone().applyQuaternion(headingQuat).multiplyScalar(-2))
+    // --- CAMERA ---
+    // Camera sits behind and above the plane
+    const camBehind = planeForward.clone().multiplyScalar(-2.5)
+    const camAbove = planeUp.clone().multiplyScalar(1.0)
+    // Slight offset in turn direction for cinematic feel
+    const camSide = planeRight.clone().multiplyScalar(-s.bank * 1.5)
 
-    const targetCamPos = new THREE.Vector3(px, py, pz).add(camOffset)
-    camera.position.lerp(targetCamPos, dt * 3)
-    camera.lookAt(px, py, pz)
+    const targetCamPos = position.clone().add(camBehind).add(camAbove).add(camSide)
+    const targetLookAt = position.clone().add(planeForward.clone().multiplyScalar(1.5))
+
+    // Smooth camera follow
+    s.camPos.lerp(targetCamPos, dt * 2.5)
+    s.camTarget.lerp(targetLookAt, dt * 3)
+
+    camera.position.copy(s.camPos)
+    camera.lookAt(s.camTarget)
   })
 
   return (
     <group ref={groupRef}>
       {/* Fuselage */}
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <capsuleGeometry args={[0.04, 0.2, 4, 8]} />
-        <meshLambertMaterial color="#e84040" flatShading />
+      <mesh rotation={[0, 0, 0]}>
+        <capsuleGeometry args={[0.03, 0.18, 4, 8]} />
+        <meshLambertMaterial color="#cc3333" flatShading />
+      </mesh>
+
+      {/* Nose cone */}
+      <mesh position={[0, 0, 0.12]} rotation={[Math.PI / 2, 0, 0]}>
+        <coneGeometry args={[0.03, 0.06, 6]} />
+        <meshLambertMaterial color="#aa2222" flatShading />
       </mesh>
 
       {/* Top wing */}
-      <mesh position={[0, 0.05, 0]}>
-        <boxGeometry args={[0.35, 0.01, 0.08]} />
-        <meshLambertMaterial color="#f5f0e0" flatShading />
+      <mesh position={[0, 0.045, 0.02]}>
+        <boxGeometry args={[0.32, 0.008, 0.07]} />
+        <meshLambertMaterial color="#f5f0dc" flatShading />
       </mesh>
 
       {/* Bottom wing */}
-      <mesh position={[0, -0.03, 0]}>
-        <boxGeometry args={[0.3, 0.01, 0.07]} />
-        <meshLambertMaterial color="#f5f0e0" flatShading />
+      <mesh position={[0, -0.025, 0.02]}>
+        <boxGeometry args={[0.28, 0.008, 0.065]} />
+        <meshLambertMaterial color="#f5f0dc" flatShading />
       </mesh>
 
-      {/* Wing struts */}
-      <mesh position={[0.08, 0.01, 0]}>
-        <boxGeometry args={[0.008, 0.08, 0.008]} />
+      {/* Wing struts left */}
+      <mesh position={[0.07, 0.01, 0.02]}>
+        <boxGeometry args={[0.006, 0.065, 0.006]} />
         <meshLambertMaterial color="#5c4030" flatShading />
       </mesh>
-      <mesh position={[-0.08, 0.01, 0]}>
-        <boxGeometry args={[0.008, 0.08, 0.008]} />
+      <mesh position={[-0.07, 0.01, 0.02]}>
+        <boxGeometry args={[0.006, 0.065, 0.006]} />
         <meshLambertMaterial color="#5c4030" flatShading />
       </mesh>
 
-      {/* Tail vertical */}
+      {/* Tail vertical stabilizer */}
       <mesh position={[0, 0.03, -0.12]}>
-        <boxGeometry args={[0.008, 0.06, 0.04]} />
-        <meshLambertMaterial color="#e84040" flatShading />
+        <boxGeometry args={[0.006, 0.05, 0.04]} />
+        <meshLambertMaterial color="#cc3333" flatShading />
       </mesh>
 
-      {/* Tail horizontal */}
-      <mesh position={[0, 0.01, -0.13]}>
-        <boxGeometry args={[0.12, 0.008, 0.03]} />
-        <meshLambertMaterial color="#f5f0e0" flatShading />
+      {/* Tail horizontal stabilizer */}
+      <mesh position={[0, 0.008, -0.13]}>
+        <boxGeometry args={[0.1, 0.006, 0.025]} />
+        <meshLambertMaterial color="#f5f0dc" flatShading />
       </mesh>
 
-      {/* Propeller */}
-      <mesh ref={propellerRef} position={[0, 0, 0.13]}>
-        <boxGeometry args={[0.18, 0.015, 0.005]} />
-        <meshLambertMaterial color="#333333" flatShading />
+      {/* Propeller - two blades */}
+      <group ref={propellerRef} position={[0, 0, 0.15]}>
+        <mesh>
+          <boxGeometry args={[0.14, 0.012, 0.004]} />
+          <meshLambertMaterial color="#222222" flatShading />
+        </mesh>
+        <mesh rotation={[0, 0, Math.PI / 2]}>
+          <boxGeometry args={[0.14, 0.012, 0.004]} />
+          <meshLambertMaterial color="#222222" flatShading />
+        </mesh>
+      </group>
+
+      {/* Propeller hub */}
+      <mesh position={[0, 0, 0.148]}>
+        <sphereGeometry args={[0.012, 6, 6]} />
+        <meshLambertMaterial color="#444444" flatShading />
       </mesh>
 
-      {/* Engine cowl */}
-      <mesh position={[0, 0, 0.11]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.035, 0.04, 0.04, 6]} />
-        <meshLambertMaterial color="#cc3030" flatShading />
+      {/* Windshield */}
+      <mesh position={[0, 0.025, 0.05]} rotation={[-0.3, 0, 0]}>
+        <boxGeometry args={[0.03, 0.025, 0.001]} />
+        <meshBasicMaterial color="#88ccff" transparent opacity={0.6} />
+      </mesh>
+
+      {/* Wheel struts */}
+      <mesh position={[0.03, -0.05, 0.02]} rotation={[0, 0, 0.1]}>
+        <boxGeometry args={[0.005, 0.04, 0.005]} />
+        <meshLambertMaterial color="#5c4030" flatShading />
+      </mesh>
+      <mesh position={[-0.03, -0.05, 0.02]} rotation={[0, 0, -0.1]}>
+        <boxGeometry args={[0.005, 0.04, 0.005]} />
+        <meshLambertMaterial color="#5c4030" flatShading />
+      </mesh>
+
+      {/* Wheels */}
+      <mesh position={[0.03, -0.07, 0.02]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.008, 8]} />
+        <meshLambertMaterial color="#222222" flatShading />
+      </mesh>
+      <mesh position={[-0.03, -0.07, 0.02]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.008, 8]} />
+        <meshLambertMaterial color="#222222" flatShading />
       </mesh>
     </group>
   )
