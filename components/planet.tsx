@@ -301,24 +301,23 @@ export function Planet({
   )
 }
 
-// Feature 6: Cloud puffs - billboarded white circles drifting above the planet
+// Feature 6: Cloud puffs - 3D puffy clouds from clustered spheres
 function CloudPuffs() {
   const groupRef = useRef<THREE.Group>(null)
-  const puffs = useMemo(() => {
-    const result: { pos: [number, number, number]; size: number; speed: number }[] = []
-    const count = 10
+  const clouds = useMemo(() => {
+    const result: { pos: [number, number, number]; scale: number }[] = []
+    const count = 8
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
-      const theta = (Math.PI * 2 * i) / count + i * 0.7
-      const r = 3.4 + Math.random() * 0.2
+      const theta = (Math.PI * 2 * i) / count + i * 1.2
+      const r = 3.35 + Math.random() * 0.15
       result.push({
         pos: [
           r * Math.sin(phi) * Math.cos(theta),
           r * Math.cos(phi),
           r * Math.sin(phi) * Math.sin(theta),
         ],
-        size: 0.2 + Math.random() * 0.25,
-        speed: 0.01 + Math.random() * 0.015,
+        scale: 0.08 + Math.random() * 0.06,
       })
     }
     return result
@@ -326,18 +325,41 @@ function CloudPuffs() {
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = clock.elapsedTime * 0.02
+      groupRef.current.rotation.y = clock.elapsedTime * 0.015
     }
   })
 
   return (
     <group ref={groupRef}>
-      {puffs.map((p, i) => (
-        <mesh key={i} position={p.pos}>
-          <circleGeometry args={[p.size, 8]} />
-          <meshBasicMaterial color="#ffffff" transparent opacity={0.6} side={THREE.DoubleSide} depthWrite={false} />
-        </mesh>
-      ))}
+      {clouds.map((c, i) => {
+        const up = new THREE.Vector3(...c.pos).normalize()
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+        return (
+          <group key={i} position={c.pos} quaternion={q} scale={c.scale}>
+            {/* Cluster of spheres to make a puffy cloud */}
+            <mesh position={[0, 0, 0]}>
+              <sphereGeometry args={[1, 7, 5]} />
+              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
+            </mesh>
+            <mesh position={[0.7, -0.1, 0.2]}>
+              <sphereGeometry args={[0.75, 6, 4]} />
+              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
+            </mesh>
+            <mesh position={[-0.6, -0.1, -0.1]}>
+              <sphereGeometry args={[0.7, 6, 4]} />
+              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
+            </mesh>
+            <mesh position={[0.2, 0.3, -0.3]}>
+              <sphereGeometry args={[0.6, 6, 4]} />
+              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
+            </mesh>
+            <mesh position={[-0.3, 0.2, 0.4]}>
+              <sphereGeometry args={[0.55, 5, 4]} />
+              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
+            </mesh>
+          </group>
+        )
+      })}
     </group>
   )
 }
