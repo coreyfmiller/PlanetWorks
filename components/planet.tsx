@@ -92,17 +92,13 @@ function islandInfluence(nx: number, ny: number, nz: number): { influence: numbe
   return { influence: maxInfluence, nearCoast }
 }
 
-export function Planet({ waves = true }: { waves?: boolean }) {
+export function Planet({ waves = true, atmosphere = true, clouds = true, foam = false }: { waves?: boolean; atmosphere?: boolean; clouds?: boolean; foam?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const cloudsRef = useRef<THREE.Mesh>(null)
-  const particlesRef = useRef<THREE.Points>(null)
 
   useFrame(({ clock }) => {
     if (cloudsRef.current) {
       cloudsRef.current.rotation.y = clock.elapsedTime * 0.025
-    }
-    if (particlesRef.current) {
-      particlesRef.current.rotation.y = clock.elapsedTime * 0.015
     }
   })
 
@@ -218,22 +214,6 @@ export function Planet({ waves = true }: { waves?: boolean }) {
   }, [])
 
   // Ocean particles (sea foam/mist)
-  const particleGeo = useMemo(() => {
-    const count = 200
-    const positions = new Float32Array(count * 3)
-    for (let i = 0; i < count; i++) {
-      const phi = Math.acos(1 - 2 * Math.random())
-      const theta = Math.random() * Math.PI * 2
-      const r = 3.05 + Math.random() * 0.08
-      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-      positions[i * 3 + 1] = r * Math.cos(phi)
-      positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta)
-    }
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    return geo
-  }, [])
-
   // Cloud geometry
   const cloudGeo = useMemo(() => {
     const geo = new THREE.IcosahedronGeometry(3.45, 5)
@@ -266,28 +246,71 @@ export function Planet({ waves = true }: { waves?: boolean }) {
         return <BushTree key={i} position={tree.pos} scale={tree.scale} />
       })}
 
-      {/* Ocean foam particles */}
-      <points ref={particlesRef} geometry={particleGeo}>
-        <pointsMaterial color="#ffffff" size={0.02} transparent opacity={0.4} sizeAttenuation />
-      </points>
+      {/* Shore foam */}
+      {foam && <ShoreFoam />}
 
       {/* Clouds */}
-      <mesh ref={cloudsRef} geometry={cloudGeo}>
-        <meshBasicMaterial color="#ffffff" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
-      </mesh>
+      {clouds && (
+        <mesh ref={cloudsRef} geometry={cloudGeo}>
+          <meshBasicMaterial color="#ffffff" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
+        </mesh>
+      )}
 
       {/* Atmosphere rim light */}
-      <mesh>
-        <sphereGeometry args={[3.15, 64, 64]} />
-        <meshBasicMaterial color="#66ccff" transparent opacity={0.03} side={THREE.BackSide} />
-      </mesh>
-
-      {/* Outer glow */}
-      <mesh>
-        <sphereGeometry args={[3.6, 32, 32]} />
-        <meshBasicMaterial color="#88ddff" transparent opacity={0.015} side={THREE.BackSide} />
-      </mesh>
+      {atmosphere && (
+        <>
+          <mesh>
+            <sphereGeometry args={[3.15, 64, 64]} />
+            <meshBasicMaterial color="#66ccff" transparent opacity={0.03} side={THREE.BackSide} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[3.6, 32, 32]} />
+            <meshBasicMaterial color="#88ddff" transparent opacity={0.015} side={THREE.BackSide} />
+          </mesh>
+        </>
+      )}
     </group>
+  )
+}
+
+function ShoreFoam() {
+  const geo = useMemo(() => {
+    const g = new THREE.IcosahedronGeometry(3.03, 7)
+    const positions = g.attributes.position
+    const colors = new Float32Array(positions.count * 3)
+    const alphas = new Float32Array(positions.count)
+
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i)
+      const y = positions.getY(i)
+      const z = positions.getZ(i)
+      const len = Math.sqrt(x * x + y * y + z * z)
+      const nx = x / len
+      const ny = y / len
+      const nz = z / len
+
+      const { influence } = islandInfluence(nx, ny, nz)
+      // Only show foam right at the shoreline
+      const isFoam = influence > 0.02 && influence < 0.18
+      const foamStrength = isFoam ? 1 - Math.abs(influence - 0.1) / 0.1 : 0
+
+      positions.setXYZ(i, nx * 3.03, ny * 3.03, nz * 3.03)
+      colors[i * 3] = 0.9
+      colors[i * 3 + 1] = 0.97
+      colors[i * 3 + 2] = 1.0
+      alphas[i] = foamStrength * 0.6
+    }
+
+    g.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    g.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1))
+    g.computeVertexNormals()
+    return g
+  }, [])
+
+  return (
+    <mesh geometry={geo}>
+      <meshBasicMaterial vertexColors transparent opacity={0.5} depthWrite={false} />
+    </mesh>
   )
 }
 
