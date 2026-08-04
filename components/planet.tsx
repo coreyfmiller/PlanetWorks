@@ -92,7 +92,7 @@ function islandInfluence(nx: number, ny: number, nz: number): { influence: numbe
   return { influence: maxInfluence, nearCoast }
 }
 
-export function Planet({ waves = true, atmosphere = true, clouds = true, foam = false }: { waves?: boolean; atmosphere?: boolean; clouds?: boolean; foam?: boolean }) {
+export function Planet({ waves = true, atmosphere = true }: { waves?: boolean; atmosphere?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const cloudsRef = useRef<THREE.Mesh>(null)
 
@@ -247,27 +247,12 @@ export function Planet({ waves = true, atmosphere = true, clouds = true, foam = 
       })}
 
       {/* Shore foam */}
-      {foam && <ShoreFoam />}
 
-      {/* Clouds */}
-      {clouds && (
+      {/* Atmosphere (the cloud sphere that gives the glow feel) */}
+      {atmosphere && (
         <mesh ref={cloudsRef} geometry={cloudGeo}>
           <meshBasicMaterial color="#ffffff" transparent opacity={0.1} side={THREE.DoubleSide} depthWrite={false} />
         </mesh>
-      )}
-
-      {/* Atmosphere rim light */}
-      {atmosphere && (
-        <>
-          <mesh>
-            <sphereGeometry args={[3.15, 64, 64]} />
-            <meshBasicMaterial color="#66ccff" transparent opacity={0.03} side={THREE.BackSide} />
-          </mesh>
-          <mesh>
-            <sphereGeometry args={[3.6, 32, 32]} />
-            <meshBasicMaterial color="#88ddff" transparent opacity={0.015} side={THREE.BackSide} />
-          </mesh>
-        </>
       )}
     </group>
   )

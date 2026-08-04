@@ -9,8 +9,6 @@ import { Sky } from '@/components/sky'
 export default function Home() {
   const [waves, setWaves] = useState(true)
   const [atmosphere, setAtmosphere] = useState(true)
-  const [clouds, setClouds] = useState(true)
-  const [foam, setFoam] = useState(false)
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -19,7 +17,7 @@ export default function Home() {
         <ambientLight intensity={0.5} />
         <directionalLight position={[8, 10, 5]} intensity={1.8} color="#ffffff" />
         <directionalLight position={[-4, -2, -6]} intensity={0.3} color="#4488cc" />
-        <Planet waves={waves} atmosphere={atmosphere} clouds={clouds} foam={foam} />
+        <Planet waves={waves} atmosphere={atmosphere} />
         <OrbitControls
           enablePan={false}
           minDistance={4.5}
@@ -49,8 +47,6 @@ export default function Home() {
       }}>
         <Toggle label="Waves" value={waves} onChange={setWaves} />
         <Toggle label="Atmosphere" value={atmosphere} onChange={setAtmosphere} />
-        <Toggle label="Clouds" value={clouds} onChange={setClouds} />
-        <Toggle label="Shore Foam" value={foam} onChange={setFoam} />
       </div>
     </div>
   )
