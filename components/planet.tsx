@@ -92,7 +92,7 @@ function islandInfluence(nx: number, ny: number, nz: number): { influence: numbe
   return { influence: maxInfluence, nearCoast }
 }
 
-export function Planet() {
+export function Planet({ waves = true }: { waves?: boolean }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const cloudsRef = useRef<THREE.Mesh>(null)
   const particlesRef = useRef<THREE.Points>(null)
@@ -257,7 +257,7 @@ export function Planet() {
       </mesh>
 
       {/* Water */}
-      <AnimatedWater />
+      {waves ? <AnimatedWater /> : <SimpleWater />}
 
       {/* Trees by biome */}
       {treeData.map((tree, i) => {
@@ -350,6 +350,21 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
         <meshLambertMaterial color="#4CAF50" flatShading />
       </mesh>
     </group>
+  )
+}
+
+function SimpleWater() {
+  return (
+    <mesh>
+      <sphereGeometry args={[3.02, 64, 64]} />
+      <meshPhongMaterial
+        color="#1a7fc4"
+        transparent
+        opacity={0.5}
+        shininess={40}
+        specular={new THREE.Color('#446688')}
+      />
+    </mesh>
   )
 }
 
@@ -455,7 +470,10 @@ function AnimatedWater() {
           float foam = smoothstep(0.58, 0.65, waves);
           color = mix(color, vec3(0.9, 0.95, 1.0), foam * 0.3);
 
-          gl_FragColor = vec4(color, 0.75);
+          // More transparent overall so terrain turquoise shows near shores
+          float alpha = 0.45;
+
+          gl_FragColor = vec4(color, alpha);
         }
       `,
     })
