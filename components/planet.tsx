@@ -355,14 +355,97 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
 
 function AnimatedWater() {
   return (
-    <mesh>
-      <sphereGeometry args={[3.02, 64, 64]} />
-      <meshPhongMaterial
-        color="#1a7fc4"
+    <group>
+      {/* Main water */}
+      <mesh>
+        <sphereGeometry args={[3.02, 64, 64]} />
+        <meshPhongMaterial
+          color="#1a7fc4"
+          transparent
+          opacity={0.5}
+          shininess={40}
+          specular={new THREE.Color('#446688')}
+        />
+      </mesh>
+      {/* Wave line overlay */}
+      <WaveLines />
+    </group>
+  )
+}
+
+function WaveLines() {
+  const ref = useRef<THREE.Mesh>(null)
+
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 512
+    canvas.height = 512
+    const ctx = canvas.getContext('2d')!
+
+    ctx.clearRect(0, 0, 512, 512)
+
+    // Multiple crossing wave patterns at different angles
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)'
+    ctx.lineWidth = 1
+
+    // First set of curves
+    for (let i = -256; i < 768; i += 22) {
+      ctx.beginPath()
+      ctx.moveTo(i, 0)
+      for (let y = 0; y < 512; y += 8) {
+        ctx.lineTo(i + Math.sin(y * 0.02) * 15, y)
+      }
+      ctx.stroke()
+    }
+
+    // Second set crossing at angle
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
+    for (let i = -256; i < 768; i += 28) {
+      ctx.beginPath()
+      ctx.moveTo(0, i)
+      for (let x = 0; x < 512; x += 8) {
+        ctx.lineTo(x, i + Math.sin(x * 0.025) * 12)
+      }
+      ctx.stroke()
+    }
+
+    // Third set — subtle diagonal
+    ctx.strokeStyle = 'rgba(200, 240, 255, 0.05)'
+    ctx.lineWidth = 2
+    for (let i = -512; i < 1024; i += 40) {
+      ctx.beginPath()
+      ctx.moveTo(i, 0)
+      for (let t = 0; t < 512; t += 10) {
+        ctx.lineTo(i + t + Math.sin(t * 0.03) * 8, t)
+      }
+      ctx.stroke()
+    }
+
+    const tex = new THREE.CanvasTexture(canvas)
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.RepeatWrapping
+    tex.repeat.set(2, 2)
+    return tex
+  }, [])
+
+  useFrame(({ clock }) => {
+    if (ref.current) {
+      const mat = ref.current.material as THREE.MeshBasicMaterial
+      if (mat.map) {
+        mat.map.offset.x = clock.elapsedTime * 0.01
+        mat.map.offset.y = clock.elapsedTime * 0.008
+      }
+    }
+  })
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[3.025, 64, 64]} />
+      <meshBasicMaterial
+        map={texture}
         transparent
-        opacity={0.5}
-        shininess={40}
-        specular={new THREE.Color('#446688')}
+        opacity={0.6}
+        depthWrite={false}
       />
     </mesh>
   )

@@ -10,24 +10,8 @@ export function Sky() {
 
   // Set background gradient
   useMemo(() => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 2
-    canvas.height = 512
-    const ctx = canvas.getContext('2d')!
-
-    const gradient = ctx.createLinearGradient(0, 0, 0, 512)
-    gradient.addColorStop(0, '#0a1628')    // Deep space at top
-    gradient.addColorStop(0.3, '#1a3a5c')  // Dark blue
-    gradient.addColorStop(0.6, '#4a90b8')  // Mid blue
-    gradient.addColorStop(0.85, '#8ec8e8') // Light sky
-    gradient.addColorStop(1, '#c8e8f5')    // Pale horizon
-
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, 2, 512)
-
-    const texture = new THREE.CanvasTexture(canvas)
-    texture.mapping = THREE.EquirectangularReflectionMapping
-    scene.background = texture
+    // Simple solid color background - consistent from all angles
+    scene.background = new THREE.Color('#6ab8d8')
   }, [scene])
 
   // Stars
