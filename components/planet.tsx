@@ -298,23 +298,42 @@ export function Planet({
   )
 }
 
-// Feature 6: Cloud puffs - 3D puffy clouds from clustered spheres
+// Feature 6: Cloud puffs - flat billboard sprites with soft gradient edges
 function CloudPuffs() {
   const groupRef = useRef<THREE.Group>(null)
+
+  // Generate soft circular gradient texture
+  const cloudTexture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 128
+    canvas.height = 128
+    const ctx = canvas.getContext('2d')!
+    const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64)
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)')
+    gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.6)')
+    gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.2)')
+    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, 128, 128)
+    const tex = new THREE.CanvasTexture(canvas)
+    return tex
+  }, [])
+
   const clouds = useMemo(() => {
-    const result: { pos: [number, number, number]; scale: number }[] = []
-    const count = 14
+    const result: { pos: [number, number, number]; scaleX: number; scaleY: number; rotation: number }[] = []
+    const count = 12
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
-      const theta = (Math.PI * 2 * i) / count + i * 1.2
-      const r = 3.3 + Math.random() * 0.1
+      const theta = (Math.PI * 2 * i) / count + i * 1.1
+      const r = 3.25
+      const nx = Math.sin(phi) * Math.cos(theta)
+      const ny = Math.cos(phi)
+      const nz = Math.sin(phi) * Math.sin(theta)
       result.push({
-        pos: [
-          r * Math.sin(phi) * Math.cos(theta),
-          r * Math.cos(phi),
-          r * Math.sin(phi) * Math.sin(theta),
-        ],
-        scale: 0.15 + Math.random() * 0.1,
+        pos: [nx * r, ny * r, nz * r],
+        scaleX: 0.4 + Math.random() * 0.4, // wide
+        scaleY: 0.15 + Math.random() * 0.12, // flat
+        rotation: Math.random() * Math.PI,
       })
     }
     return result
@@ -322,7 +341,7 @@ function CloudPuffs() {
 
   useFrame(({ clock }) => {
     if (groupRef.current) {
-      groupRef.current.rotation.y = clock.elapsedTime * 0.015
+      groupRef.current.rotation.y = clock.elapsedTime * 0.012
     }
   })
 
@@ -330,31 +349,18 @@ function CloudPuffs() {
     <group ref={groupRef}>
       {clouds.map((c, i) => {
         const up = new THREE.Vector3(...c.pos).normalize()
-        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+        const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), up)
         return (
-          <group key={i} position={c.pos} quaternion={q} scale={c.scale}>
-            {/* Cluster of spheres to make a puffy cloud */}
-            <mesh position={[0, 0, 0]}>
-              <sphereGeometry args={[1, 7, 5]} />
-              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
-            </mesh>
-            <mesh position={[0.7, -0.1, 0.2]}>
-              <sphereGeometry args={[0.75, 6, 4]} />
-              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
-            </mesh>
-            <mesh position={[-0.6, -0.1, -0.1]}>
-              <sphereGeometry args={[0.7, 6, 4]} />
-              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
-            </mesh>
-            <mesh position={[0.2, 0.3, -0.3]}>
-              <sphereGeometry args={[0.6, 6, 4]} />
-              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
-            </mesh>
-            <mesh position={[-0.3, 0.2, 0.4]}>
-              <sphereGeometry args={[0.55, 5, 4]} />
-              <meshLambertMaterial color="#ffffff" transparent opacity={0.85} />
-            </mesh>
-          </group>
+          <mesh key={i} position={c.pos} quaternion={q} rotation={[0, 0, c.rotation]}>
+            <planeGeometry args={[c.scaleX, c.scaleY]} />
+            <meshBasicMaterial
+              map={cloudTexture}
+              transparent
+              opacity={0.7}
+              depthWrite={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
         )
       })}
     </group>
