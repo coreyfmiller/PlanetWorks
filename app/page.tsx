@@ -6,6 +6,7 @@ import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
+import { FreeOrbit } from '@/components/free-orbit'
 
 export default function Home() {
   // Core
@@ -55,17 +56,7 @@ export default function Home() {
         {flyMode ? (
           <Airplane />
         ) : (
-          <OrbitControls
-            enablePan={false}
-            minDistance={4.5}
-            maxDistance={15}
-            minPolarAngle={0.05}
-            maxPolarAngle={Math.PI - 0.05}
-            autoRotate
-            autoRotateSpeed={0.2}
-            enableDamping
-            dampingFactor={0.05}
-          />
+          <FreeOrbit />
         )}
       </Canvas>
 
