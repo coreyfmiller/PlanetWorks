@@ -355,103 +355,17 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
 
 function AnimatedWater() {
   return (
-    <group>
-      {/* Main water */}
-      <mesh>
-        <sphereGeometry args={[3.02, 64, 64]} />
-        <meshPhongMaterial
-          color="#1a7fc4"
-          transparent
-          opacity={0.5}
-          shininess={40}
-          specular={new THREE.Color('#446688')}
-        />
-      </mesh>
-      {/* Wave line overlay */}
-      <WaveLines />
-    </group>
-  )
-}
-
-function WaveLines() {
-  const ref = useRef<THREE.Mesh>(null)
-
-  const normalMap = useMemo(() => {
-    const size = 512
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')!
-    const imageData = ctx.createImageData(size, size)
-    const data = imageData.data
-
-    // Generate a tileable wave normal map
-    for (let y = 0; y < size; y++) {
-      for (let x = 0; x < size; x++) {
-        const idx = (y * size + x) * 4
-
-        // Multiple octaves of sine waves at different scales and angles
-        const s1 = Math.sin(x * 0.05 + Math.sin(y * 0.03) * 2) * 0.4
-        const s2 = Math.sin(y * 0.07 + Math.sin(x * 0.04) * 1.5) * 0.3
-        const s3 = Math.sin((x + y) * 0.04 + Math.sin(x * 0.02) * 3) * 0.2
-        const s4 = Math.sin((x * 0.12) + (y * 0.08)) * 0.15
-        const s5 = Math.sin(x * 0.2 + y * 0.15) * Math.cos(y * 0.18 - x * 0.1) * 0.1
-
-        // Compute normal from height derivatives
-        const hx = s1 + s2 * 0.5 + s3 + s4 + s5
-        const hx2 = Math.sin((x + 1) * 0.05 + Math.sin(y * 0.03) * 2) * 0.4 +
-                    Math.sin(y * 0.07 + Math.sin((x + 1) * 0.04) * 1.5) * 0.3 +
-                    Math.sin(((x + 1) + y) * 0.04 + Math.sin((x + 1) * 0.02) * 3) * 0.2 +
-                    Math.sin(((x + 1) * 0.12) + (y * 0.08)) * 0.15 +
-                    Math.sin((x + 1) * 0.2 + y * 0.15) * Math.cos(y * 0.18 - (x + 1) * 0.1) * 0.1
-        const hy2 = Math.sin(x * 0.05 + Math.sin((y + 1) * 0.03) * 2) * 0.4 +
-                    Math.sin((y + 1) * 0.07 + Math.sin(x * 0.04) * 1.5) * 0.3 +
-                    Math.sin((x + (y + 1)) * 0.04 + Math.sin(x * 0.02) * 3) * 0.2 +
-                    Math.sin((x * 0.12) + ((y + 1) * 0.08)) * 0.15 +
-                    Math.sin(x * 0.2 + (y + 1) * 0.15) * Math.cos((y + 1) * 0.18 - x * 0.1) * 0.1
-
-        const dx = (hx2 - hx) * 3
-        const dy = (hy2 - hx) * 3
-
-        // Encode normal into RGB (normal map convention: R=x, G=y, B=z)
-        data[idx] = Math.floor((dx * 0.5 + 0.5) * 255)
-        data[idx + 1] = Math.floor((dy * 0.5 + 0.5) * 255)
-        data[idx + 2] = 200 // Z component (mostly pointing up)
-        data[idx + 3] = 255
-      }
-    }
-
-    ctx.putImageData(imageData, 0, 0)
-
-    const tex = new THREE.CanvasTexture(canvas)
-    tex.wrapS = THREE.RepeatWrapping
-    tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(4, 4)
-    return tex
-  }, [])
-
-  useFrame(({ clock }) => {
-    if (ref.current) {
-      const mat = ref.current.material as THREE.MeshStandardMaterial
-      if (mat.normalMap) {
-        mat.normalMap.offset.x = clock.elapsedTime * 0.008
-        mat.normalMap.offset.y = clock.elapsedTime * 0.006
-      }
-    }
-  })
-
-  return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[3.025, 64, 64]} />
-      <meshStandardMaterial
+    <mesh>
+      <sphereGeometry args={[3.02, 64, 64]} />
+      <meshPhongMaterial
         color="#1a7fc4"
-        normalMap={normalMap}
-        normalScale={new THREE.Vector2(0.3, 0.3)}
         transparent
-        opacity={0.55}
-        roughness={0.3}
-        metalness={0.1}
+        opacity={0.5}
+        shininess={40}
+        specular={new THREE.Color('#446688')}
       />
     </mesh>
   )
 }
+
+
