@@ -132,7 +132,12 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
     // Apply orientation to camera position
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.orientation)
     camera.position.copy(forward.multiplyScalar(s.distance))
-    camera.lookAt(0, 0, 0)
+    
+    // Set camera rotation directly from quaternion - NO lookAt (which causes flips)
+    camera.quaternion.copy(s.orientation)
+    // Flip to look inward (camera looks -Z by default, we want it looking at center)
+    const flipQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI)
+    camera.quaternion.multiply(flipQ)
   })
 
   return null
