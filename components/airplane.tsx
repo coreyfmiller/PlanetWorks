@@ -4,39 +4,36 @@ import { useRef, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
+/**
+ * Flight model: the plane's state is ONE quaternion.
+ * - Local Y axis = "up" (away from planet)
+ * - Local Z axis = "forward" (direction of flight)
+ * - Local X axis = "right" (wing direction)
+ * 
+ * Turning = rotating around local Y
+ * Moving = rotating around local X (tilts the "up" forward, moving us along sphere)
+ * 
+ * Position = local Y * altitude
+ * No heading variable. No poles. No flipping.
+ */
+
 export function Airplane() {
   const groupRef = useRef<THREE.Group>(null)
   const propellerRef = useRef<THREE.Mesh>(null)
   const { camera } = useThree()
 
-  // Flight state using quaternion-based movement
   const state = useRef({
-    // Position as a quaternion rotation from "north pole"
-    orientation: new THREE.Quaternion(),
-    // Heading: rotation around the local up axis
-    heading: 0,
-    // Altitude above planet surface
-    altitude: 3.5,
-    // Speed (radians per second around the sphere)
+    // Single quaternion = entire flight state
+    quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.4),
+    altitude: 3.4,
     speed: 0.35,
-    // Visual banking angle
     bank: 0,
-    // Visual pitch
     pitch: 0,
-    // Input
     keys: {} as Record<string, boolean>,
-    // Camera position for smoothing
-    camPos: new THREE.Vector3(0, 4, 9),
+    camPos: new THREE.Vector3(0, 5, 8),
     camTarget: new THREE.Vector3(0, 0, 0),
   })
 
-  // Initialize starting position
-  useEffect(() => {
-    // Start at a point on the equator facing "east"
-    state.current.orientation.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2)
-  }, [])
-
-  // Keyboard listeners
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
       state.current.keys[e.code] = true
@@ -58,89 +55,73 @@ export function Airplane() {
     const dt = Math.min(delta, 0.05)
 
     // --- INPUT ---
-    const turnRate = 1.5
     let targetBank = 0
     let targetPitch = 0
 
+    // Turn: rotate around LOCAL Y axis
+    const turnRate = 1.2 * dt
     if (keys['KeyA'] || keys['ArrowLeft']) {
-      s.heading += turnRate * dt
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turnRate)
+      s.quat.multiply(turnQ)
       targetBank = 0.4
     }
     if (keys['KeyD'] || keys['ArrowRight']) {
-      s.heading -= turnRate * dt
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turnRate)
+      s.quat.multiply(turnQ)
       targetBank = -0.4
     }
+
+    // Speed
     if (keys['KeyW'] || keys['ArrowUp']) {
       s.speed = Math.min(s.speed + dt * 0.4, 1.5)
     }
     if (keys['KeyS'] || keys['ArrowDown']) {
       s.speed = Math.max(s.speed - dt * 0.4, 0.15)
     }
+
+    // Altitude
     if (keys['Space']) {
       s.altitude = Math.min(s.altitude + dt * 0.6, 5.5)
-      targetPitch = -0.15
+      targetPitch = -0.2
     }
     if (keys['ShiftLeft'] || keys['ShiftRight']) {
       s.altitude = Math.max(s.altitude - dt * 0.6, 3.15)
-      targetPitch = 0.15
+      targetPitch = 0.2
     }
 
-    // Smooth banking and pitch
-    s.bank += (targetBank - s.bank) * dt * 4
-    s.pitch += (targetPitch - s.pitch) * dt * 3
+    // Move forward: rotate around LOCAL X axis
+    // This moves our "up" vector forward along the sphere
+    const moveAmount = s.speed * dt * 0.12
+    const moveQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), moveAmount)
+    s.quat.multiply(moveQ)
+    s.quat.normalize()
 
-    // --- MOVEMENT (pole-free) ---
-    // The orientation quaternion represents WHERE we are on the sphere
-    // and WHICH DIRECTION we face. We move by rotating it.
+    // Smooth visuals
+    s.bank += (targetBank - s.bank) * dt * 5
+    s.pitch += (targetPitch - s.pitch) * dt * 4
 
-    // Move forward: rotate around the LOCAL right axis (perpendicular to heading)
-    const moveAmount = s.speed * dt * 0.15
-
-    // Get local axes from current orientation
-    const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(s.orientation)
-    const localForward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.orientation)
-    const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(s.orientation)
-
-    // Apply heading rotation to get actual forward direction
-    const headingQuat = new THREE.Quaternion().setFromAxisAngle(localUp, s.heading)
-    const actualForward = localForward.clone().applyQuaternion(headingQuat)
-    const actualRight = localRight.clone().applyQuaternion(headingQuat)
-
-    // Move: rotate position so the planet surface moves UNDER the plane
-    // Plane flies in the -Z direction of its local frame (nose forward = -Z in our basis)
-    const moveRotation = new THREE.Quaternion().setFromAxisAngle(actualRight, -moveAmount)
-    s.orientation.premultiply(moveRotation)
-    s.orientation.normalize()
+    // --- DERIVE WORLD VECTORS FROM QUATERNION ---
+    const localUp = new THREE.Vector3(0, 1, 0).applyQuaternion(s.quat)
+    const localForward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.quat)
+    const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(s.quat)
 
     // --- POSITION ---
-    const position = new THREE.Vector3(0, 1, 0).applyQuaternion(s.orientation).multiplyScalar(s.altitude)
+    const position = localUp.clone().multiplyScalar(s.altitude)
     groupRef.current.position.copy(position)
 
     // --- PLANE ORIENTATION ---
-    const planeUp = position.clone().normalize()
-
-    // Recompute forward after movement
-    const newLocalForward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.orientation)
-    const newLocalRight = new THREE.Vector3(1, 0, 0).applyQuaternion(s.orientation)
-    const newHeadingQuat = new THREE.Quaternion().setFromAxisAngle(planeUp, s.heading)
-    const planeForward = newLocalForward.clone().applyQuaternion(newHeadingQuat)
-
-    // Ensure forward is tangent to sphere
-    planeForward.sub(planeUp.clone().multiplyScalar(planeForward.dot(planeUp))).normalize()
-    const planeRight = new THREE.Vector3().crossVectors(planeForward, planeUp).normalize()
-
-    // Build rotation matrix
-    const rotMatrix = new THREE.Matrix4()
-    rotMatrix.makeBasis(planeRight, planeUp, planeForward)
+    // Plane model: nose points +Z, wings along X, top is +Y
+    // We want: nose = localForward, wings = localRight, top = localUp
+    const rotMatrix = new THREE.Matrix4().makeBasis(localRight, localUp, localForward)
     groupRef.current.quaternion.setFromRotationMatrix(rotMatrix)
 
-    // Apply visual banking
-    const bankQuat = new THREE.Quaternion().setFromAxisAngle(planeForward, s.bank)
-    groupRef.current.quaternion.premultiply(bankQuat)
+    // Apply visual bank (roll around forward)
+    const bankQ = new THREE.Quaternion().setFromAxisAngle(localForward, s.bank)
+    groupRef.current.quaternion.premultiply(bankQ)
 
-    // Apply visual pitch
-    const pitchQuat = new THREE.Quaternion().setFromAxisAngle(planeRight, s.pitch)
-    groupRef.current.quaternion.premultiply(pitchQuat)
+    // Apply visual pitch (tilt around right)
+    const pitchQ = new THREE.Quaternion().setFromAxisAngle(localRight, s.pitch)
+    groupRef.current.quaternion.premultiply(pitchQ)
 
     // --- PROPELLER ---
     if (propellerRef.current) {
@@ -148,16 +129,16 @@ export function Airplane() {
     }
 
     // --- CAMERA ---
-    // Camera behind the plane (opposite of planeForward), above, looking ahead
-    const camBehind = planeForward.clone().multiplyScalar(-3.0)
-    const camAbove = planeUp.clone().multiplyScalar(1.2)
-    const camSide = planeRight.clone().multiplyScalar(-s.bank * 2.0)
+    // Behind the plane, above, looking forward
+    const camBehind = localForward.clone().multiplyScalar(-3.2)
+    const camAbove = localUp.clone().multiplyScalar(1.0)
+    const camSide = localRight.clone().multiplyScalar(-s.bank * 1.5)
 
     const targetCamPos = position.clone().add(camBehind).add(camAbove).add(camSide)
-    const targetLookAt = position.clone().add(planeForward.clone().multiplyScalar(2.0))
+    const targetLookAt = position.clone().add(localForward.clone().multiplyScalar(2.0))
 
-    s.camPos.lerp(targetCamPos, dt * 2.5)
-    s.camTarget.lerp(targetLookAt, dt * 3)
+    s.camPos.lerp(targetCamPos, dt * 3)
+    s.camTarget.lerp(targetLookAt, dt * 4)
 
     camera.position.copy(s.camPos)
     camera.lookAt(s.camTarget)
@@ -166,7 +147,7 @@ export function Airplane() {
   return (
     <group ref={groupRef}>
       {/* Fuselage */}
-      <mesh rotation={[0, 0, 0]}>
+      <mesh>
         <capsuleGeometry args={[0.03, 0.18, 4, 8]} />
         <meshLambertMaterial color="#cc3333" flatShading />
       </mesh>
@@ -189,7 +170,7 @@ export function Airplane() {
         <meshLambertMaterial color="#f5f0dc" flatShading />
       </mesh>
 
-      {/* Wing struts left */}
+      {/* Wing struts */}
       <mesh position={[0.07, 0.01, 0.02]}>
         <boxGeometry args={[0.006, 0.065, 0.006]} />
         <meshLambertMaterial color="#5c4030" flatShading />
@@ -199,19 +180,19 @@ export function Airplane() {
         <meshLambertMaterial color="#5c4030" flatShading />
       </mesh>
 
-      {/* Tail vertical stabilizer */}
+      {/* Tail vertical */}
       <mesh position={[0, 0.03, -0.12]}>
         <boxGeometry args={[0.006, 0.05, 0.04]} />
         <meshLambertMaterial color="#cc3333" flatShading />
       </mesh>
 
-      {/* Tail horizontal stabilizer */}
+      {/* Tail horizontal */}
       <mesh position={[0, 0.008, -0.13]}>
         <boxGeometry args={[0.1, 0.006, 0.025]} />
         <meshLambertMaterial color="#f5f0dc" flatShading />
       </mesh>
 
-      {/* Propeller - two blades */}
+      {/* Propeller */}
       <group ref={propellerRef} position={[0, 0, 0.15]}>
         <mesh>
           <boxGeometry args={[0.14, 0.012, 0.004]} />
