@@ -5,30 +5,30 @@ import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
+import { Airplane } from '@/components/airplane'
 
 export default function Home() {
   // Core
-  const [waves, setWaves] = useState(true)
+  const [waves, setWaves] = useState(false)
   const [atmosphere, setAtmosphere] = useState(true)
+  const [flyMode, setFlyMode] = useState(false)
 
   // New features
-  const [moon, setMoon] = useState(true)
+  const [moon, setMoon] = useState(false)
   const [stars, setStars] = useState(false)
   const [dramaticLighting, setDramaticLighting] = useState(false)
   const [wideBeach, setWideBeach] = useState(true)
   const [cloudPuffs, setCloudPuffs] = useState(false)
   const [dayNight, setDayNight] = useState(false)
   const [boat, setBoat] = useState(true)
-  const [birds, setBirds] = useState(true)
   const [snowCap, setSnowCap] = useState(true)
-  const [pollen, setPollen] = useState(true)
+  const [pollen, setPollen] = useState(false)
   const [biggerTrees, setBiggerTrees] = useState(true)
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Canvas camera={{ position: [0, 3, 8], fov: 45 }}>
+      <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
-        {/* Lighting - controlled by dramatic toggle */}
         <ambientLight intensity={dramaticLighting ? 0.2 : 0.5} />
         <directionalLight
           position={[8, 10, 5]}
@@ -47,21 +47,45 @@ export default function Home() {
           cloudPuffs={cloudPuffs}
           dayNight={dayNight}
           boat={boat}
-          birds={birds}
           snowCap={snowCap}
           pollen={pollen}
           biggerTrees={biggerTrees}
         />
-        <OrbitControls
-          enablePan={false}
-          minDistance={4.5}
-          maxDistance={15}
-          autoRotate
-          autoRotateSpeed={0.2}
-          enableDamping
-          dampingFactor={0.05}
-        />
+
+        {flyMode ? (
+          <Airplane />
+        ) : (
+          <OrbitControls
+            enablePan={false}
+            minDistance={4.5}
+            maxDistance={15}
+            autoRotate
+            autoRotateSpeed={0.2}
+            enableDamping
+            dampingFactor={0.05}
+          />
+        )}
       </Canvas>
+
+      {/* Fly mode hint */}
+      {flyMode && (
+        <div style={{
+          position: 'absolute',
+          top: 20,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.6)',
+          borderRadius: 10,
+          padding: '8px 16px',
+          color: 'white',
+          fontSize: 12,
+          fontFamily: 'system-ui, sans-serif',
+          backdropFilter: 'blur(8px)',
+          textAlign: 'center',
+        }}>
+          WASD to steer · Space/Shift for altitude · W/S for speed
+        </div>
+      )}
 
       {/* Control panel */}
       <div style={{
@@ -81,7 +105,10 @@ export default function Home() {
         maxHeight: '80vh',
         overflowY: 'auto',
       }}>
-        <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Planet</div>
+        <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Mode</div>
+        <Toggle label="✈ Fly Mode" value={flyMode} onChange={setFlyMode} />
+
+        <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Planet</div>
         <Toggle label="Waves" value={waves} onChange={setWaves} />
         <Toggle label="Atmosphere" value={atmosphere} onChange={setAtmosphere} />
         <Toggle label="Wide Beach" value={wideBeach} onChange={setWideBeach} />
