@@ -90,21 +90,18 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15, autoRotateSpeed
   function applyRotation(rx: number, ry: number) {
     const s = state.current
 
-    // Rotate around the CAMERA's local X axis (vertical drag = pitch)
-    // Rotate around the WORLD Y axis... NO! That causes poles.
-    // Instead: rotate around the camera's local axes.
+    // The key to no-pole rotation:
+    // Use the SCREEN axes (camera's actual current right and up) as rotation axes.
+    // This means dragging always does what you expect visually.
+    
+    const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion)
+    const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion)
 
-    // Get camera's right and up vectors
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(s.orientation)
-    const up = new THREE.Vector3(0, 1, 0).applyQuaternion(s.orientation)
+    const qX = new THREE.Quaternion().setFromAxisAngle(cameraUp, rx)
+    const qY = new THREE.Quaternion().setFromAxisAngle(cameraRight, ry)
 
-    // Horizontal drag = rotate around the camera's up vector
-    const qHoriz = new THREE.Quaternion().setFromAxisAngle(up, rx)
-    // Vertical drag = rotate around the camera's right vector
-    const qVert = new THREE.Quaternion().setFromAxisAngle(right, ry)
-
-    s.orientation.premultiply(qHoriz)
-    s.orientation.premultiply(qVert)
+    s.orientation.premultiply(qY)
+    s.orientation.premultiply(qX)
     s.orientation.normalize()
   }
 
