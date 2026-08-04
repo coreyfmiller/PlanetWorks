@@ -356,38 +356,118 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
 function AnimatedWater() {
   const ref = useRef<THREE.Mesh>(null)
 
-  // Load the Three.js water normal map from the package
-  const normalMap = useMemo(() => {
-    const loader = new THREE.TextureLoader()
-    const tex = loader.load('https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/waternormals.jpg')
-    tex.wrapS = THREE.RepeatWrapping
-    tex.wrapT = THREE.RepeatWrapping
-    tex.repeat.set(6, 6)
-    return tex
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      transparent: true,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor1: { value: new THREE.Color('#0a4a7a') },
+        uColor2: { value: new THREE.Color('#1a88c8') },
+        uColor3: { value: new THREE.Color('#44c8e8') },
+        uLightDir: { value: new THREE.Vector3(0.6, 0.8, 0.4).normalize() },
+      },
+      vertexShader: `
+        varying vec3 vWorldNormal;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+
+        void main() {
+          vUv = uv;
+          vWorldNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+          vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        uniform vec3 uColor1;
+        uniform vec3 uColor2;
+        uniform vec3 uColor3;
+        uniform vec3 uLightDir;
+
+        varying vec3 vWorldNormal;
+        varying vec3 vWorldPos;
+        varying vec2 vUv;
+
+        // Simple hash noise
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        // Smooth noise
+        float noise(vec2 p) {
+          vec2 i = floor(p);
+          vec2 f = fract(p);
+          f = f * f * (3.0 - 2.0 * f);
+          float a = hash(i);
+          float b = hash(i + vec2(1.0, 0.0));
+          float c = hash(i + vec2(0.0, 1.0));
+          float d = hash(i + vec2(1.0, 1.0));
+          return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+        }
+
+        // Fractal brownian motion
+        float fbm(vec2 p) {
+          float v = 0.0;
+          float a = 0.5;
+          for (int i = 0; i < 5; i++) {
+            v += a * noise(p);
+            p *= 2.1;
+            a *= 0.5;
+          }
+          return v;
+        }
+
+        void main() {
+          // Use world position for wave calculation (no UV seams)
+          vec2 waveCoord = vWorldPos.xz * 1.2;
+
+          // Multiple animated wave layers
+          float wave1 = fbm(waveCoord * 1.5 + uTime * 0.3);
+          float wave2 = fbm(waveCoord * 2.8 - uTime * 0.2 + vec2(5.0, 3.0));
+          float wave3 = fbm(waveCoord * 5.0 + uTime * 0.15 + vec2(10.0, 8.0));
+
+          float waves = wave1 * 0.5 + wave2 * 0.3 + wave3 * 0.2;
+
+          // Depth-based coloring (center of sphere = deeper)
+          float depth = dot(vWorldNormal, normalize(vWorldPos)) * 0.5 + 0.5;
+
+          // Mix colors based on waves and depth
+          vec3 color = mix(uColor1, uColor2, waves);
+          color = mix(color, uColor3, pow(waves, 2.0) * 0.4);
+
+          // Compute wave normal for lighting
+          float dx = fbm(waveCoord * 2.0 + vec2(0.01, 0.0) + uTime * 0.3) - fbm(waveCoord * 2.0 - vec2(0.01, 0.0) + uTime * 0.3);
+          float dy = fbm(waveCoord * 2.0 + vec2(0.0, 0.01) + uTime * 0.3) - fbm(waveCoord * 2.0 - vec2(0.0, 0.01) + uTime * 0.3);
+          vec3 waveNormal = normalize(vWorldNormal + vec3(dx, dy, 0.0) * 2.0);
+
+          // Diffuse lighting
+          float diff = max(dot(waveNormal, uLightDir), 0.0) * 0.4 + 0.6;
+          color *= diff;
+
+          // Specular highlight
+          vec3 viewDir = normalize(cameraPosition - vWorldPos);
+          vec3 halfDir = normalize(uLightDir + viewDir);
+          float spec = pow(max(dot(waveNormal, halfDir), 0.0), 60.0);
+          color += vec3(1.0, 0.98, 0.95) * spec * 0.5;
+
+          // Foam on wave peaks
+          float foam = smoothstep(0.58, 0.65, waves);
+          color = mix(color, vec3(0.9, 0.95, 1.0), foam * 0.3);
+
+          gl_FragColor = vec4(color, 0.75);
+        }
+      `,
+    })
   }, [])
 
   useFrame(({ clock }) => {
-    if (ref.current) {
-      const mat = ref.current.material as THREE.MeshStandardMaterial
-      if (mat.normalMap) {
-        mat.normalMap.offset.x = clock.elapsedTime * 0.005
-        mat.normalMap.offset.y = clock.elapsedTime * 0.003
-      }
-    }
+    material.uniforms.uTime.value = clock.elapsedTime
   })
 
   return (
-    <mesh ref={ref}>
+    <mesh ref={ref} material={material}>
       <sphereGeometry args={[3.02, 64, 64]} />
-      <meshStandardMaterial
-        color="#1878b8"
-        normalMap={normalMap}
-        normalScale={new THREE.Vector2(0.15, 0.15)}
-        transparent
-        opacity={0.6}
-        roughness={0.2}
-        metalness={0.05}
-      />
     </mesh>
   )
 }
