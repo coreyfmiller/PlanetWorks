@@ -108,7 +108,7 @@ export function Airplane() {
 
     // Move: rotate the position around the axis perpendicular to movement direction
     // Moving "forward" = rotating around the "right" axis
-    const moveRotation = new THREE.Quaternion().setFromAxisAngle(actualRight, -moveAmount)
+    const moveRotation = new THREE.Quaternion().setFromAxisAngle(actualRight, moveAmount)
     s.orientation.premultiply(moveRotation)
     s.orientation.normalize()
 
@@ -148,12 +148,12 @@ export function Airplane() {
     }
 
     // --- CAMERA ---
-    const camBehind = planeForward.clone().multiplyScalar(-3.0)
+    const camBehind = planeForward.clone().multiplyScalar(3.0)
     const camAbove = planeUp.clone().multiplyScalar(1.2)
-    const camSide = planeRight.clone().multiplyScalar(-s.bank * 2.0)
+    const camSide = planeRight.clone().multiplyScalar(s.bank * 2.0)
 
     const targetCamPos = position.clone().add(camBehind).add(camAbove).add(camSide)
-    const targetLookAt = position.clone().add(planeForward.clone().multiplyScalar(2.0))
+    const targetLookAt = position.clone().add(planeForward.clone().multiplyScalar(-2.0))
 
     s.camPos.lerp(targetCamPos, dt * 2.5)
     s.camTarget.lerp(targetLookAt, dt * 3)
