@@ -92,7 +92,6 @@ export default function Home() {
         <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Sky</div>
         <Toggle label="Moon" value={moon} onChange={setMoon} />
         <Toggle label="Stars" value={stars} onChange={setStars} />
-        <Toggle label="Birds" value={birds} onChange={setBirds} />
         <Toggle label="Pollen" value={pollen} onChange={setPollen} />
 
         <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Extras</div>

@@ -284,9 +284,6 @@ export function Planet({
       {/* Stars */}
       {stars && <Stars />}
 
-      {/* Birds */}
-      {birds && <Birds />}
-
       {/* Boat */}
       {boat && <Boat />}
 
