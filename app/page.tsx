@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
+import { Sky } from '@/components/sky'
 
 export default function Home() {
   // Core
@@ -12,7 +13,7 @@ export default function Home() {
 
   // New features
   const [moon, setMoon] = useState(true)
-  const [stars, setStars] = useState(true)
+  const [stars, setStars] = useState(false)
   const [dramaticLighting, setDramaticLighting] = useState(false)
   const [wideBeach, setWideBeach] = useState(true)
   const [cloudPuffs, setCloudPuffs] = useState(true)
@@ -26,6 +27,7 @@ export default function Home() {
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
       <Canvas camera={{ position: [0, 3, 8], fov: 45 }}>
+        <Sky />
         {/* Lighting - controlled by dramatic toggle */}
         <ambientLight intensity={dramaticLighting ? 0.2 : 0.5} />
         <directionalLight

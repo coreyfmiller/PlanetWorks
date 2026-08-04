@@ -306,18 +306,18 @@ function CloudPuffs() {
   const groupRef = useRef<THREE.Group>(null)
   const clouds = useMemo(() => {
     const result: { pos: [number, number, number]; scale: number }[] = []
-    const count = 8
+    const count = 14
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
       const theta = (Math.PI * 2 * i) / count + i * 1.2
-      const r = 3.35 + Math.random() * 0.15
+      const r = 3.3 + Math.random() * 0.1
       result.push({
         pos: [
           r * Math.sin(phi) * Math.cos(theta),
           r * Math.cos(phi),
           r * Math.sin(phi) * Math.sin(theta),
         ],
-        scale: 0.08 + Math.random() * 0.06,
+        scale: 0.15 + Math.random() * 0.1,
       })
     }
     return result
