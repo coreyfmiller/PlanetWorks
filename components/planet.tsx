@@ -254,6 +254,16 @@ export function Planet({
 
   return (
     <group>
+      {/* Pole markers for debugging */}
+      <mesh position={[0, 3.3, 0]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshBasicMaterial color="#ff0000" />
+      </mesh>
+      <mesh position={[0, -3.3, 0]}>
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshBasicMaterial color="#0000ff" />
+      </mesh>
+
       {/* Planet terrain */}
       <mesh ref={meshRef} geometry={geometry}>
         <meshLambertMaterial vertexColors flatShading />
