@@ -6,6 +6,7 @@ import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
 import { InstancedTrees, InstancedHouses } from '@/components/instanced-objects'
 import { PortDocks } from '@/components/ports'
+import { FishSchools } from '@/components/fish-schools'
 
 // 5 large continents + 10 medium islands for ~50/50 coverage
 interface IslandDef {
@@ -397,6 +398,9 @@ export function Planet({
 
       {/* Ports/docks */}
       <PortDocks />
+
+      {/* Fish schools in the water */}
+      <FishSchools />
 
       {/* Atmosphere glow */}
       {atmosphere && <AtmosphereGlow />}
