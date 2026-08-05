@@ -6,6 +6,7 @@ import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE, BAITS } from '@/components/boat'
+import { Walker } from '@/components/walker'
 import { PirateShip } from '@/components/pirate'
 import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
@@ -15,7 +16,7 @@ import { getNearestFishSchool } from '@/components/fish-schools'
 import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
 import * as THREE from 'three'
 
-type Mode = 'globe' | 'fly' | 'boat'
+type Mode = 'globe' | 'fly' | 'boat' | 'walk'
 
 export default function Home() {
   // Core
@@ -269,6 +270,8 @@ export default function Home() {
           <TreasureChests boatPosition={boatPos} onCollect={handleTreasureCollect} />
           <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
           </>
+        ) : mode === 'walk' ? (
+          <Walker />
         ) : (
           <FreeOrbit />
         )}
@@ -290,7 +293,7 @@ export default function Home() {
           backdropFilter: 'blur(8px)',
           textAlign: 'center',
         }}>
-          {mode === 'fly' ? 'WASD to steer · W/S for speed' : 'A/D to steer · W/S for speed · F to fish'}
+          {mode === 'fly' ? 'WASD to steer · W/S for speed' : mode === 'walk' ? 'WASD to walk' : 'A/D to steer · W/S for speed · F to fish'}
         </div>
       )}
 
@@ -871,6 +874,7 @@ export default function Home() {
           <ModeButton label="🌍" active={mode === 'globe'} onClick={() => setMode('globe')} />
           <ModeButton label="✈" active={mode === 'fly'} onClick={() => setMode('fly')} />
           <ModeButton label="⛵" active={mode === 'boat'} onClick={() => setMode('boat')} />
+          <ModeButton label="🚶" active={mode === 'walk'} onClick={() => setMode('walk')} />
         </div>
         {mode === 'fly' && <Toggle label="Contrail" value={planeTrail} onChange={setPlaneTrail} />}
 
