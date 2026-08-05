@@ -33,7 +33,7 @@ export function FishSchools() {
         // Only some spots (noise-based)
         const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
         if (spot > 0.3) {
-          const r = 2.98 // just below water surface
+          const r = 3.035 // just above water surface so they're visible
           const center: [number, number, number] = [nx * r, ny * r, nz * r]
 
           // 3-5 fish per school
@@ -108,11 +108,62 @@ export function FishSchools() {
   return (
     <group ref={groupRef}>
       {allFish.map((f, i) => (
-        <mesh key={i} position={f.pos} scale={0.004}>
+        <mesh key={i} position={f.pos} scale={0.008}>
           <coneGeometry args={[0.5, 2, 3]} />
-          <meshBasicMaterial color="#2a6090" transparent opacity={0.6} />
+          <meshBasicMaterial color="#ff8844" transparent opacity={0.8} />
         </mesh>
       ))}
     </group>
   )
+}
+
+// Utility: find nearest fish school to a position
+let _schoolCenters: [number, number, number][] | null = null
+
+function getSchoolCenters(): [number, number, number][] {
+  if (_schoolCenters) return _schoolCenters
+
+  const results: [number, number, number][] = []
+  const count = 800
+
+  for (let i = 0; i < count; i++) {
+    const phi = Math.acos(1 - 2 * (i + 0.5) / count)
+    const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5)
+    const nx = Math.sin(phi) * Math.cos(theta)
+    const ny = Math.cos(phi)
+    const nz = Math.sin(phi) * Math.sin(theta)
+
+    const { influence } = islandInfluence(nx, ny, nz, true)
+
+    if (influence > -0.05 && influence < 0.06) {
+      const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
+      if (spot > 0.3) {
+        const r = 3.035
+        results.push([nx * r, ny * r, nz * r])
+      }
+    }
+
+    if (results.length >= 15) break
+  }
+
+  _schoolCenters = results
+  return results
+}
+
+export function getNearestFishSchool(pos: THREE.Vector3): { position: [number, number, number]; distance: number } | null {
+  const centers = getSchoolCenters()
+  if (centers.length === 0) return null
+
+  let best: [number, number, number] = centers[0]
+  let bestDist = Infinity
+
+  for (const c of centers) {
+    const d = pos.distanceTo(new THREE.Vector3(...c))
+    if (d < bestDist) {
+      bestDist = d
+      best = c
+    }
+  }
+
+  return { position: best, distance: bestDist }
 }

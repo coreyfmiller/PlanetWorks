@@ -11,6 +11,7 @@ import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
 import { getNearestPort, getPorts } from '@/components/ports'
+import { getNearestFishSchool } from '@/components/fish-schools'
 import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
 import * as THREE from 'three'
 
@@ -41,6 +42,7 @@ export default function Home() {
   const [nearPort, setNearPort] = useState(false)
   const [sellMessage, setSellMessage] = useState<string | null>(null)
   const [portDirection, setPortDirection] = useState<{ angle: number; distance: number } | null>(null)
+  const [fishDirection, setFishDirection] = useState<{ angle: number; distance: number } | null>(null)
   const [rodLevel, setRodLevel] = useState(() => {
     if (typeof window === 'undefined') return 1
     return Number(localStorage.getItem('pw_rodLevel')) || 1
@@ -108,6 +110,28 @@ export default function Home() {
         const angle = Math.atan2(sin, cos) + Math.PI
 
         setPortDirection({ angle, distance: dist })
+      }
+    }
+
+    // Fish school direction
+    if (forward) {
+      const nearest = getNearestFishSchool(pos)
+      if (nearest) {
+        const fishVec = new THREE.Vector3(...nearest.position)
+        const localUp = pos.clone().normalize()
+        const toFish = fishVec.clone().sub(pos).normalize()
+        const toFishFlat = toFish.clone().sub(localUp.clone().multiplyScalar(toFish.dot(localUp)))
+        const forwardFlat2 = forward.clone().sub(localUp.clone().multiplyScalar(forward.dot(localUp)))
+
+        if (toFishFlat.length() > 0.001 && forwardFlat2.length() > 0.001) {
+          toFishFlat.normalize()
+          forwardFlat2.normalize()
+          const cross2 = new THREE.Vector3().crossVectors(forwardFlat2, toFishFlat)
+          const sin2 = cross2.dot(localUp)
+          const cos2 = forwardFlat2.dot(toFishFlat)
+          const fishAngle = Math.atan2(sin2, cos2) + Math.PI
+          setFishDirection({ angle: fishAngle, distance: nearest.distance })
+        }
       }
     }
   }, [])
@@ -453,6 +477,36 @@ export default function Home() {
             }}>
               <span style={{ fontSize: 16 }}>☠️</span>
               <span>Pirate!</span>
+            </div>
+          )}
+
+          {/* Fish school compass */}
+          {fishDirection && fishDirection.distance > 0.3 && (
+            <div style={{
+              position: 'absolute',
+              top: pirateActive ? 140 : (!nearPort && portDirection ? 100 : 60),
+              right: 20,
+              background: 'rgba(0,40,60,0.7)',
+              borderRadius: 10,
+              padding: '6px 10px',
+              color: '#44ddff',
+              fontSize: 12,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: 18,
+                height: 18,
+                lineHeight: '18px',
+                textAlign: 'center',
+                transform: `rotate(${fishDirection.angle}rad)`,
+                fontSize: 14,
+              }}>⬆</span>
+              <span>🐟 Fish</span>
             </div>
           )}
 
