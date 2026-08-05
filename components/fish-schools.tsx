@@ -16,7 +16,7 @@ export function FishSchools() {
 
   // Generate school positions in open water near coasts
   const schools = useMemo(() => {
-    const result: { center: [number, number, number]; fish: { offset: [number, number, number]; speed: number; phase: number }[] }[] = []
+    const result: { center: [number, number, number]; fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] }[] = []
     const count = 800
 
     for (let i = 0; i < count; i++) {
@@ -33,12 +33,12 @@ export function FishSchools() {
         // Only some spots (noise-based)
         const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
         if (spot > 0.3) {
-          const r = 3.035 // just above water surface so they're visible
+          const r = 2.99 // below water surface
           const center: [number, number, number] = [nx * r, ny * r, nz * r]
 
-          // 3-5 fish per school
+          // 3-5 fish per school with varying sizes
           const fishCount = 3 + Math.floor(Math.random() * 3)
-          const fish: { offset: [number, number, number]; speed: number; phase: number }[] = []
+          const fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] = []
           for (let f = 0; f < fishCount; f++) {
             fish.push({
               offset: [
@@ -48,6 +48,7 @@ export function FishSchools() {
               ],
               speed: 0.8 + Math.random() * 0.6,
               phase: Math.random() * Math.PI * 2,
+              size: 0.005 + Math.random() * 0.007,
             })
           }
 
@@ -90,7 +91,7 @@ export function FishSchools() {
 
   // Flatten all fish into one group
   const allFish = useMemo(() => {
-    const result: { pos: [number, number, number] }[] = []
+    const result: { pos: [number, number, number]; size: number }[] = []
     for (const school of schools) {
       for (const fish of school.fish) {
         result.push({
@@ -99,6 +100,7 @@ export function FishSchools() {
             school.center[1] + fish.offset[1],
             school.center[2] + fish.offset[2],
           ],
+          size: fish.size,
         })
       }
     }
@@ -108,9 +110,9 @@ export function FishSchools() {
   return (
     <group ref={groupRef}>
       {allFish.map((f, i) => (
-        <mesh key={i} position={f.pos} scale={0.008}>
+        <mesh key={i} position={f.pos} scale={f.size}>
           <coneGeometry args={[0.5, 2, 3]} />
-          <meshBasicMaterial color="#ff8844" transparent opacity={0.8} />
+          <meshBasicMaterial color="#ff8844" transparent opacity={0.7} />
         </mesh>
       ))}
     </group>
@@ -138,7 +140,7 @@ function getSchoolCenters(): [number, number, number][] {
     if (influence > -0.05 && influence < 0.06) {
       const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
       if (spot > 0.3) {
-        const r = 3.035
+        const r = 2.99
         results.push([nx * r, ny * r, nz * r])
       }
     }
