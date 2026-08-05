@@ -227,7 +227,22 @@ export function Planet({
 
       const detail = fbmSimplex(nx * 12, ny * 12, nz * 12, 5) * 0.5 + 0.5
       const cliff = Math.pow(influence, 0.65)
-      const height = 3.0 + cliff * 0.16 + detail * influence * 0.07
+      let height = 3.0 + cliff * 0.16 + detail * influence * 0.07
+
+      // Match mountain peaks from terrain generation
+      const mountain1Dist = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.7) ** 2 + (nz - 0.3) ** 2)
+      const mountain2Dist = Math.sqrt((nx + 0.6) ** 2 + (ny - 0.2) ** 2 + (nz + 0.5) ** 2)
+      if (mountain1Dist < 0.3 && influence > 0.3) {
+        const peak = (1 - mountain1Dist / 0.3) * 0.2
+        height += peak * peak * 1.5
+      }
+      if (mountain2Dist < 0.25 && influence > 0.3) {
+        const peak = (1 - mountain2Dist / 0.25) * 0.18
+        height += peak * peak * 1.2
+      }
+
+      // Sink slightly into terrain so trees don't float
+      height -= 0.01
 
       // Distribute 5 types based on biome + variation
       const variation = simplex3(nx * 50, ny * 50, nz * 50) * 0.5 + 0.5
@@ -254,16 +269,6 @@ export function Planet({
 
   return (
     <group>
-      {/* Pole markers for debugging */}
-      <mesh position={[0, 3.3, 0]}>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshBasicMaterial color="#ff0000" />
-      </mesh>
-      <mesh position={[0, -3.3, 0]}>
-        <sphereGeometry args={[0.1, 8, 8]} />
-        <meshBasicMaterial color="#0000ff" />
-      </mesh>
-
       {/* Planet terrain */}
       <mesh ref={meshRef} geometry={geometry}>
         <meshLambertMaterial vertexColors flatShading />

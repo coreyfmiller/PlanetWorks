@@ -155,8 +155,8 @@ export function Airplane() {
 
   return (
     <group ref={groupRef}>
-      {/* Fuselage */}
-      <mesh>
+      {/* Fuselage - horizontal (along Z axis) */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
         <capsuleGeometry args={[0.03, 0.18, 4, 8]} />
         <meshLambertMaterial color="#cc3333" flatShading />
       </mesh>

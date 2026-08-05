@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
@@ -19,12 +18,13 @@ export default function Home() {
   const [stars, setStars] = useState(false)
   const [dramaticLighting, setDramaticLighting] = useState(false)
   const [wideBeach, setWideBeach] = useState(true)
-  const [cloudPuffs, setCloudPuffs] = useState(false)
   const [dayNight, setDayNight] = useState(false)
-  const [boat, setBoat] = useState(false)
   const [snowCap, setSnowCap] = useState(true)
   const [pollen, setPollen] = useState(false)
   const [biggerTrees, setBiggerTrees] = useState(true)
+
+  // Control panel expand state
+  const [expanded, setExpanded] = useState(false)
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -45,9 +45,9 @@ export default function Home() {
           stars={stars}
           dramaticLighting={dramaticLighting}
           wideBeach={wideBeach}
-          cloudPuffs={cloudPuffs}
+          cloudPuffs={false}
           dayNight={dayNight}
-          boat={boat}
+          boat={false}
           snowCap={snowCap}
           pollen={pollen}
           biggerTrees={biggerTrees}
@@ -101,26 +101,46 @@ export default function Home() {
         maxHeight: '80vh',
         overflowY: 'auto',
       }}>
-        <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Mode</div>
+        {/* Always visible */}
         <Toggle label="✈ Fly Mode" value={flyMode} onChange={setFlyMode} />
 
-        <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Planet</div>
-        <Toggle label="Waves" value={waves} onChange={setWaves} />
-        <Toggle label="Atmosphere" value={atmosphere} onChange={setAtmosphere} />
-        <Toggle label="Wide Beach" value={wideBeach} onChange={setWideBeach} />
-        <Toggle label="Snow Caps" value={snowCap} onChange={setSnowCap} />
-        <Toggle label="Bigger Trees" value={biggerTrees} onChange={setBiggerTrees} />
-        <Toggle label="Cloud Puffs" value={cloudPuffs} onChange={setCloudPuffs} />
+        {/* Expand/collapse button */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 11,
+            cursor: 'pointer',
+            padding: '4px 0',
+            textAlign: 'left',
+            letterSpacing: 0.5,
+          }}
+        >
+          {expanded ? '▾ Hide options' : '▸ More options'}
+        </button>
 
-        <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Sky</div>
-        <Toggle label="Moon" value={moon} onChange={setMoon} />
-        <Toggle label="Stars" value={stars} onChange={setStars} />
-        <Toggle label="Pollen" value={pollen} onChange={setPollen} />
+        {/* Expandable section */}
+        {expanded && (
+          <>
+            <div style={{ fontSize: 11, opacity: 0.5, marginTop: 4, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Planet</div>
+            <Toggle label="Waves" value={waves} onChange={setWaves} />
+            <Toggle label="Atmosphere" value={atmosphere} onChange={setAtmosphere} />
+            <Toggle label="Wide Beach" value={wideBeach} onChange={setWideBeach} />
+            <Toggle label="Snow Caps" value={snowCap} onChange={setSnowCap} />
+            <Toggle label="Bigger Trees" value={biggerTrees} onChange={setBiggerTrees} />
 
-        <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Extras</div>
-        <Toggle label="Boat" value={boat} onChange={setBoat} />
-        <Toggle label="Dramatic Light" value={dramaticLighting} onChange={setDramaticLighting} />
-        <Toggle label="Day/Night" value={dayNight} onChange={setDayNight} />
+            <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Sky</div>
+            <Toggle label="Moon" value={moon} onChange={setMoon} />
+            <Toggle label="Stars" value={stars} onChange={setStars} />
+            <Toggle label="Pollen" value={pollen} onChange={setPollen} />
+
+            <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Extras</div>
+            <Toggle label="Dramatic Light" value={dramaticLighting} onChange={setDramaticLighting} />
+            <Toggle label="Day/Night" value={dayNight} onChange={setDayNight} />
+          </>
+        )}
       </div>
     </div>
   )
