@@ -129,13 +129,13 @@ export function Airplane() {
     }
 
     // --- CAMERA ---
-    // Camera directly behind the tail, looking over the nose
+    // Camera directly behind the tail, angled down slightly to show more ground
     const behindDir = localForward.clone().negate()
     const camPos = position.clone()
       .add(behindDir.multiplyScalar(2.8))
-      .add(localUp.clone().multiplyScalar(0.8))
+      .add(localUp.clone().multiplyScalar(1.1))
 
-    const lookAhead = position.clone().add(localForward.clone().multiplyScalar(3.0))
+    const lookAhead = position.clone().add(localForward.clone().multiplyScalar(3.0)).add(localUp.clone().multiplyScalar(-0.4))
 
     s.camPos.lerp(camPos, dt * 3)
     s.camTarget.lerp(lookAhead, dt * 4)
