@@ -221,7 +221,7 @@ export default function Home() {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
       <AmbientAudio flyMode={mode !== 'globe'} />
       <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
