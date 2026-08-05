@@ -309,29 +309,34 @@ export function Walker({ spawnPosition, onPositionUpdate, onChopTree }: {
     const finalForward = new THREE.Vector3(0, 0, 1).applyQuaternion(s.quat)
     const finalRight = new THREE.Vector3(1, 0, 0).applyQuaternion(s.quat)
 
-    // Terrain height
+    // Terrain height - smooth blend at shoreline to prevent floating
     const nx = finalUp.x, ny = finalUp.y, nz = finalUp.z
     const { influence } = islandInfluence(nx, ny, nz, true)
 
     let height = 3.0
-    if (influence > 0.05) {
+    if (influence > 0.02) {
       const detail = fbmSimplex(nx * 12, ny * 12, nz * 12, 5) * 0.5 + 0.5
       const cliff = Math.pow(influence, 0.65)
-      height = 3.0 + cliff * 0.16 + detail * influence * 0.07
+      const terrainHeight = 3.0 + cliff * 0.16 + detail * influence * 0.07
 
       const mountain1Dist = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.7) ** 2 + (nz - 0.3) ** 2)
       const mountain2Dist = Math.sqrt((nx + 0.6) ** 2 + (ny - 0.2) ** 2 + (nz + 0.5) ** 2)
+      let mountainAdd = 0
       if (mountain1Dist < 0.3 && influence > 0.3) {
         const peak = (1 - mountain1Dist / 0.3) * 0.2
-        height += peak * peak * 1.5
+        mountainAdd += peak * peak * 1.5
       }
       if (mountain2Dist < 0.25 && influence > 0.3) {
         const peak = (1 - mountain2Dist / 0.25) * 0.18
-        height += peak * peak * 1.2
+        mountainAdd += peak * peak * 1.2
       }
+
+      // Smooth blend: at low influence (beach edge), lerp between sea level and terrain
+      const blend = Math.min(1, influence / 0.15)
+      height = 3.0 + blend * (terrainHeight - 3.0 + mountainAdd)
     }
 
-    const position = finalUp.clone().multiplyScalar(height + 0.02)
+    const position = finalUp.clone().multiplyScalar(height)
     groupRef.current.position.copy(position)
     if (onPositionUpdate) onPositionUpdate(position)
 
