@@ -10,7 +10,7 @@ import { PirateShip } from '@/components/pirate'
 import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
-import { getNearestPort, getPorts } from '@/components/ports'
+import { getNearestPort, getPorts, PortDocks } from '@/components/ports'
 import { getNearestFishSchool } from '@/components/fish-schools'
 import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
 import * as THREE from 'three'
@@ -219,6 +219,8 @@ export default function Home() {
           biggerTrees={biggerTrees}
           shoreFoam={shoreFoam}
         />
+
+        <PortDocks />
 
         {mode !== 'globe' ? (
           <SceneReset />
