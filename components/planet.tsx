@@ -4,7 +4,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
-import { InstancedTrees, InstancedHouses } from '@/components/instanced-objects'
+import { InstancedTrees, InstancedHouses } from '@/components/instanced-trees'
 import { FishSchools } from '@/components/fish-schools'
 
 // 5 large continents + 10 medium islands for ~50/50 coverage
