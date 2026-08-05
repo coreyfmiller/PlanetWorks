@@ -21,7 +21,8 @@ export function Walker() {
   const model = useMemo(() => scene.clone(), [scene])
 
   const state = useRef({
-    quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.4),
+    // Start further inland
+    quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.2),
     speed: 0,
     bank: 0,
     keys: {} as Record<string, boolean>,
@@ -81,8 +82,8 @@ export function Walker() {
     const checkUp = new THREE.Vector3(0, 1, 0).applyQuaternion(checkQ).normalize()
     const { influence: aheadInfluence } = islandInfluence(checkUp.x, checkUp.y, checkUp.z, true)
 
-    // Stop at water
-    if (aheadInfluence < 0.08 && s.speed > 0) {
+    // Stop at water (only block if clearly water)
+    if (aheadInfluence < 0.05 && s.speed > 0) {
       s.speed = 0
     }
 
