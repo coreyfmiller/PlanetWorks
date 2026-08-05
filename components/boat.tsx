@@ -44,9 +44,10 @@ interface BoatProps {
   wake?: boolean
   onCatch?: (fish: FishCatch) => void
   onFishingState?: (state: FishingState) => void
+  onPositionUpdate?: (pos: THREE.Vector3) => void
 }
 
-export function Boat({ wake = true, onCatch, onFishingState }: BoatProps) {
+export function Boat({ wake = true, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
   const groupRef = useRef<THREE.Group>(null)
   const bobberRef = useRef<THREE.Group>(null)
   const wakeRef = useRef<THREE.Points>(null)
@@ -228,6 +229,7 @@ export function Boat({ wake = true, onCatch, onFishingState }: BoatProps) {
     // --- POSITION ---
     const position = finalUp.clone().multiplyScalar(s.altitude)
     groupRef.current.position.copy(position)
+    onPositionUpdate?.(position)
 
     // --- BOAT ORIENTATION ---
     const rotMatrix = new THREE.Matrix4().makeBasis(finalRight, finalUp, finalForward)

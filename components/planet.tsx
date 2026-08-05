@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
 import { InstancedTrees, InstancedHouses } from '@/components/instanced-objects'
+import { PortDocks } from '@/components/ports'
 
 // 5 large continents + 10 medium islands for ~50/50 coverage
 interface IslandDef {
@@ -392,6 +393,9 @@ export function Planet({
 
       {/* Villages - instanced */}
       <InstancedHouses houses={houseData} />
+
+      {/* Ports/docks */}
+      <PortDocks />
 
       {/* Atmosphere glow */}
       {atmosphere && <AtmosphereGlow />}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
@@ -8,8 +8,17 @@ import { Airplane } from '@/components/airplane'
 import { Boat, FishCatch } from '@/components/boat'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
+import { getNearestPort } from '@/components/ports'
+import * as THREE from 'three'
 
 type Mode = 'globe' | 'fly' | 'boat'
+
+const FISH_PRICES: Record<string, number> = {
+  common: 5,
+  uncommon: 15,
+  rare: 50,
+  legendary: 200,
+}
 
 export default function Home() {
   // Core
@@ -22,11 +31,44 @@ export default function Home() {
   const [catches, setCatches] = useState<FishCatch[]>([])
   const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
 
+  // Economy
+  const [coins, setCoins] = useState(0)
+  const [nearPort, setNearPort] = useState(false)
+  const [sellMessage, setSellMessage] = useState<string | null>(null)
+
   const handleCatch = useCallback((fish: FishCatch) => {
     setCatches(prev => [...prev, fish])
     setLastCatch(fish)
     setTimeout(() => setLastCatch(null), 2500)
   }, [])
+
+  const handlePositionUpdate = useCallback((pos: THREE.Vector3) => {
+    const port = getNearestPort(pos)
+    setNearPort(!!port)
+  }, [])
+
+  const handleSell = useCallback(() => {
+    if (catches.length === 0) return
+    let total = 0
+    for (const fish of catches) {
+      total += FISH_PRICES[fish.rarity] || 5
+    }
+    setCoins(prev => prev + total)
+    setSellMessage(`Sold ${catches.length} fish for ${total} coins!`)
+    setCatches([])
+    setTimeout(() => setSellMessage(null), 2500)
+  }, [catches])
+
+  // E key to sell at port
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'KeyE' && nearPort && catches.length > 0) {
+        handleSell()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [nearPort, catches, handleSell])
 
   // New features
   const [moon, setMoon] = useState(false)
@@ -78,7 +120,7 @@ export default function Home() {
         {mode === 'fly' ? (
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
-          <Boat onCatch={handleCatch} onFishingState={setFishingState} />
+          <Boat onCatch={handleCatch} onFishingState={setFishingState} onPositionUpdate={handlePositionUpdate} />
         ) : (
           <FreeOrbit />
         )}
@@ -166,21 +208,87 @@ export default function Home() {
             </div>
           )}
 
-          {/* Fish counter */}
-          {catches.length > 0 && (
+          {/* Fish counter + coins */}
+          <div style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'rgba(0,0,0,0.6)',
+            borderRadius: 10,
+            padding: '6px 12px',
+            color: 'white',
+            fontSize: 13,
+            fontFamily: 'system-ui, sans-serif',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            gap: 12,
+          }}>
+            <span>🪙 {coins}</span>
+            {catches.length > 0 && <span>🐟 {catches.length}</span>}
+          </div>
+
+          {/* Port sell prompt */}
+          {nearPort && catches.length > 0 && (
+            <div
+              onClick={handleSell}
+              style={{
+                position: 'absolute',
+                bottom: 80,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(0,100,0,0.8)',
+                borderRadius: 12,
+                padding: '10px 20px',
+                color: 'white',
+                fontSize: 14,
+                fontFamily: 'system-ui, sans-serif',
+                backdropFilter: 'blur(8px)',
+                cursor: 'pointer',
+                border: '1px solid rgba(255,255,255,0.3)',
+                textAlign: 'center',
+              }}
+            >
+              Press E or click to sell {catches.length} fish
+            </div>
+          )}
+
+          {nearPort && catches.length === 0 && (
             <div style={{
               position: 'absolute',
-              top: 20,
-              right: 20,
+              bottom: 80,
+              left: '50%',
+              transform: 'translateX(-50%)',
               background: 'rgba(0,0,0,0.6)',
-              borderRadius: 10,
-              padding: '6px 12px',
-              color: 'white',
+              borderRadius: 12,
+              padding: '8px 16px',
+              color: 'rgba(255,255,255,0.6)',
               fontSize: 13,
               fontFamily: 'system-ui, sans-serif',
               backdropFilter: 'blur(8px)',
+              textAlign: 'center',
             }}>
-              🐟 {catches.length}
+              🏪 Port — Catch some fish to sell!
+            </div>
+          )}
+
+          {/* Sell confirmation */}
+          {sellMessage && (
+            <div style={{
+              position: 'absolute',
+              top: '35%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,80,0,0.9)',
+              borderRadius: 14,
+              padding: '14px 24px',
+              color: '#44ff44',
+              fontSize: 16,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: '1px solid #44ff44',
+            }}>
+              🪙 {sellMessage}
             </div>
           )}
         </>
