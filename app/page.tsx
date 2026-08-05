@@ -24,15 +24,31 @@ export default function Home() {
   const [catches, setCatches] = useState<FishCatch[]>([])
   const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
 
-  // Economy
-  const [coins, setCoins] = useState(0)
+  // Economy - load from localStorage
+  const [coins, setCoins] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    return Number(localStorage.getItem('pw_coins')) || 0
+  })
   const [nearPort, setNearPort] = useState(false)
   const [sellMessage, setSellMessage] = useState<string | null>(null)
-  const [rodLevel, setRodLevel] = useState(1)
+  const [rodLevel, setRodLevel] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Number(localStorage.getItem('pw_rodLevel')) || 1
+  })
   const [showShop, setShowShop] = useState(false)
+  const [caughtSpecies, setCaughtSpecies] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return []
+    try { return JSON.parse(localStorage.getItem('pw_caughtSpecies') || '[]') } catch { return [] }
+  })
+
+  // Save to localStorage on change
+  useEffect(() => { localStorage.setItem('pw_coins', String(coins)) }, [coins])
+  useEffect(() => { localStorage.setItem('pw_rodLevel', String(rodLevel)) }, [rodLevel])
+  useEffect(() => { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) }, [caughtSpecies])
 
   const handleCatch = useCallback((fish: FishCatch) => {
     setCatches(prev => [...prev, fish])
+    setCaughtSpecies(prev => prev.includes(fish.name) ? prev : [...prev, fish.name])
     setLastCatch(fish)
     setTimeout(() => setLastCatch(null), 2500)
   }, [])

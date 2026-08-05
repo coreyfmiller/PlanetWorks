@@ -150,7 +150,7 @@ export function Boat({ wake = true, rodLevel = 1, onCatch, onFishingState, onPos
       if (s.fishing === 'idle') {
         s.fishing = 'cast'
         s.fishTimer = 0
-        s.waitTime = 2 + Math.random() * 4
+        s.waitTime = Math.max(1, 2 + Math.random() * 4 - (rodLevel - 1) * 0.5)
         s.biteTime = 1.2 + Math.random() * 0.8
         onFishingState?.('cast')
       } else if (s.fishing === 'bite') {
