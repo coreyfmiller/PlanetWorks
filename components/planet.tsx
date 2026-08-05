@@ -4,7 +4,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
-import { InstancedTrees, InstancedHouses } from '@/components/instanced-trees'
+import { InstancedTrees, InstancedHouses } from '@/components/instanced-objects'
 import { FishSchools } from '@/components/fish-schools'
 
 // 5 large continents + 10 medium islands for ~50/50 coverage
@@ -254,7 +254,7 @@ export function Planet({
       }
 
       // Sink into terrain so trees don't float
-      height -= 0.03
+      height -= 0.05
 
       // Distribute 5 types based on biome + variation
       const variation = simplex3(nx * 50, ny * 50, nz * 50) * 0.5 + 0.5
@@ -310,7 +310,7 @@ export function Planet({
             const peak = (1 - cm2Dist / 0.25) * 0.18
             cHeight += peak * peak * 1.2
           }
-          cHeight -= 0.01
+          cHeight -= 0.05
 
           trees.push({
             pos: [nnx * cHeight, nny * cHeight, nnz * cHeight],
