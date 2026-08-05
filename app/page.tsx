@@ -75,6 +75,19 @@ export default function Home() {
   const [piratePos, setPiratePos] = useState<THREE.Vector3 | null>(null)
   const [pirateActive, setPirateActive] = useState(false)
   const [showJournal, setShowJournal] = useState(false)
+  const [marketMultiplier, setMarketMultiplier] = useState(() => {
+    const multipliers = [0.8, 1.0, 1.0, 1.2, 1.5, 2.0]
+    return multipliers[Math.floor(Math.random() * multipliers.length)]
+  })
+
+  // Market price changes every 2 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const multipliers = [0.8, 1.0, 1.0, 1.2, 1.5, 2.0]
+      setMarketMultiplier(multipliers[Math.floor(Math.random() * multipliers.length)])
+    }, 120000)
+    return () => clearInterval(interval)
+  }, [])
 
   const handlePirateActive = useCallback((active: boolean, position?: THREE.Vector3) => {
     setPirateActive(active)
@@ -171,14 +184,15 @@ export default function Home() {
     if (catches.length === 0) return
     let total = 0
     for (const fish of catches) {
-      total += fish.value
+      total += Math.round(fish.value * marketMultiplier)
     }
     setCoins(prev => prev + total)
-    setSellMessage(`Sold ${catches.length} fish for ${total} coins!`)
+    const multiplierText = marketMultiplier > 1 ? ` (${marketMultiplier}x market!)` : marketMultiplier < 1 ? ' (low market)' : ''
+    setSellMessage(`Sold ${catches.length} fish for ${total} coins!${multiplierText}`)
     setCatches([])
     playCoinJingle()
     setTimeout(() => setSellMessage(null), 2500)
-  }, [catches])
+  }, [catches, marketMultiplier])
 
   // E key to sell at port
   useEffect(() => {
@@ -550,7 +564,7 @@ export default function Home() {
                   textAlign: 'center',
                 }}
               >
-                Press E to sell {catches.length} fish
+                Press E to sell {catches.length} fish {marketMultiplier > 1 ? `(${marketMultiplier}x! 🔥)` : ''}
               </div>
               <div
                 onClick={() => setShowShop(true)}
