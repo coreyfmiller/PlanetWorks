@@ -211,10 +211,10 @@ export function Planet({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wideBeach, snowCap])
 
-  // Trees: 5 types by biome
+  // Trees: 5 types by biome with clustering
   const treeData = useMemo(() => {
-    const trees: { pos: [number, number, number]; scale: number; type: 'pine' | 'palm' | 'bush' | 'oak' | 'birch' }[] = []
-    const count = 400
+    const trees: { pos: [number, number, number]; scale: number; type: 'pine' | 'palm' | 'bush' | 'oak' | 'birch'; rotY: number }[] = []
+    const count = 500
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
       const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5)
@@ -224,6 +224,10 @@ export function Planet({
 
       const { influence, nearCoast } = islandInfluence(nx, ny, nz, wideBeach)
       if (influence < 0.15 || influence > 0.75) continue
+
+      // Density variation: skip some based on noise for natural gaps
+      const density = simplex3(nx * 8, ny * 8, nz * 8) * 0.5 + 0.5
+      if (density < 0.25) continue
 
       const detail = fbmSimplex(nx * 12, ny * 12, nz * 12, 5) * 0.5 + 0.5
       const cliff = Math.pow(influence, 0.65)
@@ -255,11 +259,59 @@ export function Planet({
         type = variation > 0.65 ? 'oak' : variation > 0.3 ? 'bush' : 'birch'
       }
 
+      // Random scale variation per tree
+      const scaleNoise = simplex3(nx * 50, ny * 50, nz * 50) * 0.5 + 0.5
+      const baseScale = 0.035 + scaleNoise * 0.03
+      const rotY = simplex3(nx * 100, ny * 100, nz * 100) * Math.PI
+
       trees.push({
         pos: [nx * height, ny * height, nz * height],
-        scale: 0.04 + simplex3(nx * 50, ny * 50, nz * 50) * 0.5 * 0.025,
+        scale: baseScale,
         type,
+        rotY,
       })
+
+      // Clustering: 30% chance to add 1-2 nearby trees
+      if (density > 0.6 && influence > 0.25) {
+        const clusterCount = density > 0.8 ? 2 : 1
+        for (let c = 0; c < clusterCount; c++) {
+          const offset = 0.015 + c * 0.01
+          const angle = (c + 1) * 2.3 + i
+          const cnx = nx + Math.cos(angle) * offset
+          const cny = ny + Math.sin(angle) * offset * 0.5
+          const cnz = nz + Math.sin(angle + 1) * offset
+          const cLen = Math.sqrt(cnx * cnx + cny * cny + cnz * cnz)
+          const nnx = cnx / cLen
+          const nny = cny / cLen
+          const nnz = cnz / cLen
+
+          const { influence: cInf } = islandInfluence(nnx, nny, nnz, wideBeach)
+          if (cInf < 0.15) continue
+
+          const cDetail = fbmSimplex(nnx * 12, nny * 12, nnz * 12, 5) * 0.5 + 0.5
+          const cCliff = Math.pow(cInf, 0.65)
+          let cHeight = 3.0 + cCliff * 0.16 + cDetail * cInf * 0.07
+
+          const cm1Dist = Math.sqrt((nnx - 0.5) ** 2 + (nny - 0.7) ** 2 + (nnz - 0.3) ** 2)
+          const cm2Dist = Math.sqrt((nnx + 0.6) ** 2 + (nny - 0.2) ** 2 + (nnz + 0.5) ** 2)
+          if (cm1Dist < 0.3 && cInf > 0.3) {
+            const peak = (1 - cm1Dist / 0.3) * 0.2
+            cHeight += peak * peak * 1.5
+          }
+          if (cm2Dist < 0.25 && cInf > 0.3) {
+            const peak = (1 - cm2Dist / 0.25) * 0.18
+            cHeight += peak * peak * 1.2
+          }
+          cHeight -= 0.01
+
+          trees.push({
+            pos: [nnx * cHeight, nny * cHeight, nnz * cHeight],
+            scale: baseScale * (0.7 + c * 0.15),
+            type,
+            rotY: rotY + c * 1.5,
+          })
+        }
+      }
     }
     return trees
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -277,14 +329,14 @@ export function Planet({
       {/* Water */}
       {waves ? <AnimatedWater /> : <SimpleWater />}
 
-      {/* Trees by biome - 5 types */}
+      {/* Trees by biome - 5 types with rotation */}
       {treeData.map((tree, i) => {
         const s = tree.scale * treeScale
-        if (tree.type === 'palm') return <PalmTree key={i} position={tree.pos} scale={s} />
-        if (tree.type === 'pine') return <PineTree key={i} position={tree.pos} scale={s} />
-        if (tree.type === 'oak') return <OakTree key={i} position={tree.pos} scale={s} />
-        if (tree.type === 'birch') return <BirchTree key={i} position={tree.pos} scale={s} />
-        return <BushTree key={i} position={tree.pos} scale={s} />
+        if (tree.type === 'palm') return <PalmTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
+        if (tree.type === 'pine') return <PineTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
+        if (tree.type === 'oak') return <OakTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
+        if (tree.type === 'birch') return <BirchTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
+        return <BushTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
       })}
 
       {/* Atmosphere glow */}
@@ -595,9 +647,11 @@ function AtmosphereGlow() {
 }
 
 // Palm tree - near coasts
-function PalmTree({ position, scale }: { position: [number, number, number]; scale: number }) {
+function PalmTree({ position, scale, rotY = 0 }: { position: [number, number, number]; scale: number; rotY?: number }) {
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
   return (
     <group position={position} quaternion={q} scale={scale}>
       <mesh position={[0, 0.6, 0]}>
@@ -613,9 +667,11 @@ function PalmTree({ position, scale }: { position: [number, number, number]; sca
 }
 
 // Pine tree - highlands
-function PineTree({ position, scale }: { position: [number, number, number]; scale: number }) {
+function PineTree({ position, scale, rotY = 0 }: { position: [number, number, number]; scale: number; rotY?: number }) {
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
   return (
     <group position={position} quaternion={q} scale={scale}>
       <mesh position={[0, 0.3, 0]}>
@@ -639,9 +695,11 @@ function PineTree({ position, scale }: { position: [number, number, number]; sca
 }
 
 // Bush tree - grasslands
-function BushTree({ position, scale }: { position: [number, number, number]; scale: number }) {
+function BushTree({ position, scale, rotY = 0 }: { position: [number, number, number]; scale: number; rotY?: number }) {
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
   return (
     <group position={position} quaternion={q} scale={scale}>
       <mesh position={[0, 0.2, 0]}>
@@ -657,9 +715,11 @@ function BushTree({ position, scale }: { position: [number, number, number]; sca
 }
 
 // Feature 1: OakTree - round sphere canopy on a trunk
-function OakTree({ position, scale }: { position: [number, number, number]; scale: number }) {
+function OakTree({ position, scale, rotY = 0 }: { position: [number, number, number]; scale: number; rotY?: number }) {
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
   return (
     <group position={position} quaternion={q} scale={scale}>
       <mesh position={[0, 0.4, 0]}>
@@ -675,9 +735,11 @@ function OakTree({ position, scale }: { position: [number, number, number]; scal
 }
 
 // Feature 1: BirchTree - tall thin cylinder with small leaves
-function BirchTree({ position, scale }: { position: [number, number, number]; scale: number }) {
+function BirchTree({ position, scale, rotY = 0 }: { position: [number, number, number]; scale: number; rotY?: number }) {
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
   return (
     <group position={position} quaternion={q} scale={scale}>
       <mesh position={[0, 0.7, 0]}>
