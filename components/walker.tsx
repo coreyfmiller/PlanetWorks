@@ -21,8 +21,23 @@ export function Walker() {
   const model = useMemo(() => scene.clone(), [scene])
 
   const state = useRef({
-    // Start further inland
-    quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.2),
+    // Find a land position to spawn on
+    quat: (() => {
+      // Sample points until we find solid land
+      for (let i = 0; i < 500; i++) {
+        const phi = Math.acos(1 - 2 * (i + 0.5) / 500)
+        const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5)
+        const nx = Math.sin(phi) * Math.cos(theta)
+        const ny = Math.cos(phi)
+        const nz = Math.sin(phi) * Math.sin(theta)
+        const { influence } = islandInfluence(nx, ny, nz, true)
+        if (influence > 0.3) {
+          const up = new THREE.Vector3(nx, ny, nz).normalize()
+          return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+        }
+      }
+      return new THREE.Quaternion()
+    })(),
     speed: 0,
     bank: 0,
     keys: {} as Record<string, boolean>,
