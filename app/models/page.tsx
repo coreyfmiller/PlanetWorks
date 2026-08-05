@@ -85,6 +85,10 @@ export default function ModelsPage() {
       <Section title="Structures">
         <ModelViewer path="/models/port.glb" label="Port / Harbor" description="Wooden pier, lighthouse, fish market shack, crates and barrels. (42MB, may take time to load)" scale={1} />
       </Section>
+
+      <Section title="Characters">
+        <ModelViewer path="/models/character-fisherman.glb" label="Fisherman" description="Weathered castaway fisherman. Torn linen shirt, bare feet, sun-bleached hair." scale={1} />
+      </Section>
     </div>
   )
 }
