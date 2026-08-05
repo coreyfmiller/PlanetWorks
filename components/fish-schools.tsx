@@ -28,8 +28,8 @@ export function FishSchools() {
 
       const { influence } = islandInfluence(nx, ny, nz, true)
 
-      // Near coast but in water (good fishing area)
-      if (influence > -0.05 && influence < 0.06) {
+      // In open water, away from coast
+      if (influence > -0.1 && influence < -0.02) {
         // Only some spots (noise-based)
         const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
         if (spot > 0.3) {
@@ -169,7 +169,7 @@ function getSchoolCenters(): [number, number, number][] {
 
     const { influence } = islandInfluence(nx, ny, nz, true)
 
-    if (influence > -0.05 && influence < 0.06) {
+    if (influence > -0.1 && influence < -0.02) {
       const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
       if (spot > 0.3) {
         const r = 2.99
