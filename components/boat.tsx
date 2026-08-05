@@ -75,7 +75,6 @@ export const BOAT_SPEEDS: BoatSpeedDef[] = [
   { level: 1, name: 'Cloth Sail', cost: 0, maxSpeed: 0.6, cargo: 5 },
   { level: 2, name: 'Canvas Sail', cost: 40, maxSpeed: 0.85, cargo: 8 },
   { level: 3, name: 'Racing Sail', cost: 120, maxSpeed: 1.1, cargo: 12 },
-  { level: 4, name: 'Motor Engine', cost: 300, maxSpeed: 1.5, cargo: 20 },
 ]
 
 export interface BaitDef {
@@ -445,9 +444,8 @@ function BoatModel({ level }: { level: number }) {
     '/models/boat-basic.glb',
     '/models/boat-canvas.glb',
     '/models/boat-racing.glb',
-    '/models/boat-motor.glb',
   ]
-  const offsets = [0.05, 0.05, 0.05, 0.01]
+  const offsets = [0.05, 0.05, 0.05]
   const path = paths[Math.min(level, paths.length) - 1]
   const yOffset = offsets[Math.min(level, offsets.length) - 1]
   const { scene } = useGLTF(path)
