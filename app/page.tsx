@@ -30,6 +30,9 @@ export default function Home() {
     setFishingState(state)
     if (state === 'cast') playSplash()
     if (state === 'missed') playMiss()
+    if (state === 'nofish') {
+      setTimeout(() => setFishingState('idle'), 2000)
+    }
   }, [])
   const [catches, setCatches] = useState<FishCatch[]>([])
   const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
@@ -286,6 +289,7 @@ export default function Home() {
               {fishingState === 'bite' && '🐟 BITE! Press F!'}
               {fishingState === 'caught' && '✅ Got one!'}
               {fishingState === 'missed' && '❌ Missed!'}
+              {fishingState === 'nofish' && '🚫 No fish nearby! Follow the 🐟 compass.'}
             </div>
           )}
 

@@ -4,6 +4,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from 'rea
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
+import { getNearestFishSchool } from '@/components/fish-schools'
 
 export interface FishCatch {
   name: string
@@ -97,7 +98,7 @@ export function rollFish(rodLevel: number): FishCatch {
   return available[Math.floor(Math.random() * available.length)]
 }
 
-type FishingState = 'idle' | 'cast' | 'waiting' | 'bite' | 'caught' | 'missed'
+type FishingState = 'idle' | 'cast' | 'waiting' | 'bite' | 'caught' | 'missed' | 'nofish'
 
 interface BoatProps {
   wake?: boolean
@@ -163,11 +164,19 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFis
       s.justPressed = false
 
       if (s.fishing === 'idle') {
-        s.fishing = 'cast'
-        s.fishTimer = 0
-        s.waitTime = Math.max(1, 2 + Math.random() * 4 - (rodLevel - 1) * 0.5)
-        s.biteTime = 1.2 + Math.random() * 0.8
-        onFishingState?.('cast')
+        // Check if near a fish school before allowing cast
+        const pos = new THREE.Vector3(0, 1, 0).applyQuaternion(s.quat).normalize().multiplyScalar(s.altitude)
+        const nearestSchool = getNearestFishSchool(pos)
+        if (nearestSchool && nearestSchool.distance < 0.6) {
+          s.fishing = 'cast'
+          s.fishTimer = 0
+          s.waitTime = Math.max(1, 2 + Math.random() * 4 - (rodLevel - 1) * 0.5)
+          s.biteTime = 1.2 + Math.random() * 0.8
+          onFishingState?.('cast')
+        } else {
+          // Too far from fish
+          onFishingState?.('nofish')
+        }
       } else if (s.fishing === 'bite') {
         s.fishing = 'caught'
         s.fishTimer = 0

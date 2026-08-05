@@ -117,35 +117,67 @@ export function FishSchools() {
 }
 
 function FishMesh({ position, size, colorIndex }: { position: [number, number, number]; size: number; colorIndex: number }) {
-  const colors = ['#6699bb', '#88aacc', '#557799']
-  const bodyColor = colors[colorIndex]
+  const bodyColors = ['#4488aa', '#5599bb', '#3377aa']
+  const finColors = ['#336688', '#447799', '#225577']
+  const bodyColor = bodyColors[colorIndex]
+  const finColor = finColors[colorIndex]
 
   return (
     <group position={position} scale={size}>
-      {/* Body - elongated sphere */}
-      <mesh>
-        <sphereGeometry args={[1, 5, 4]} />
+      {/* Body - tapered oval (wide in middle, thin at ends) */}
+      <mesh scale={[1.6, 0.7, 0.5]}>
+        <sphereGeometry args={[1, 6, 5]} />
         <meshLambertMaterial color={bodyColor} flatShading />
       </mesh>
-      {/* Tail fin */}
-      <mesh position={[-1.2, 0, 0]} rotation={[0, 0, Math.PI / 4]}>
-        <planeGeometry args={[0.8, 0.8]} />
-        <meshLambertMaterial color={bodyColor} side={THREE.DoubleSide} flatShading />
+
+      {/* Tail fin - forked V shape */}
+      <mesh position={[-1.6, 0.3, 0]} rotation={[0, 0, 0.6]}>
+        <boxGeometry args={[0.6, 0.15, 0.05]} />
+        <meshLambertMaterial color={finColor} flatShading />
       </mesh>
-      {/* Dorsal fin */}
-      <mesh position={[0.2, 0.6, 0]} rotation={[0, 0, -0.3]}>
-        <planeGeometry args={[0.6, 0.4]} />
-        <meshLambertMaterial color={bodyColor} side={THREE.DoubleSide} flatShading />
+      <mesh position={[-1.6, -0.3, 0]} rotation={[0, 0, -0.6]}>
+        <boxGeometry args={[0.6, 0.15, 0.05]} />
+        <meshLambertMaterial color={finColor} flatShading />
       </mesh>
-      {/* Eye */}
-      <mesh position={[0.7, 0.2, 0.45]}>
-        <sphereGeometry args={[0.15, 4, 4]} />
+
+      {/* Dorsal fin (top) */}
+      <mesh position={[0, 0.7, 0]} rotation={[0, 0, -0.2]}>
+        <coneGeometry args={[0.3, 0.6, 3]} />
+        <meshLambertMaterial color={finColor} flatShading />
+      </mesh>
+
+      {/* Pectoral fins (sides) */}
+      <mesh position={[0.3, -0.2, 0.4]} rotation={[0.4, 0.3, 0]}>
+        <coneGeometry args={[0.15, 0.5, 3]} />
+        <meshLambertMaterial color={finColor} flatShading />
+      </mesh>
+      <mesh position={[0.3, -0.2, -0.4]} rotation={[-0.4, -0.3, 0]}>
+        <coneGeometry args={[0.15, 0.5, 3]} />
+        <meshLambertMaterial color={finColor} flatShading />
+      </mesh>
+
+      {/* Eyes */}
+      <mesh position={[1.1, 0.15, 0.35]}>
+        <sphereGeometry args={[0.12, 4, 4]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[1.1, 0.15, -0.35]}>
+        <sphereGeometry args={[0.12, 4, 4]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[1.2, 0.15, 0.38]}>
+        <sphereGeometry args={[0.06, 4, 4]} />
         <meshBasicMaterial color="#111111" />
       </mesh>
-      {/* Belly (lighter) */}
-      <mesh position={[0, -0.3, 0]} scale={[1.0, 0.5, 0.9]}>
-        <sphereGeometry args={[0.8, 4, 3]} />
-        <meshLambertMaterial color="#aaccdd" flatShading />
+      <mesh position={[1.2, 0.15, -0.38]}>
+        <sphereGeometry args={[0.06, 4, 4]} />
+        <meshBasicMaterial color="#111111" />
+      </mesh>
+
+      {/* Silver belly */}
+      <mesh position={[0, -0.25, 0]} scale={[1.4, 0.4, 0.45]}>
+        <sphereGeometry args={[1, 5, 4]} />
+        <meshLambertMaterial color="#c0d8e8" flatShading />
       </mesh>
     </group>
   )
