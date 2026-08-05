@@ -6,6 +6,7 @@ import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { FreeOrbit } from '@/components/free-orbit'
+import { AmbientAudio } from '@/components/audio'
 
 export default function Home() {
   // Core
@@ -28,6 +29,7 @@ export default function Home() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+      <AmbientAudio flyMode={flyMode} />
       <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
         <ambientLight intensity={dramaticLighting ? 0.2 : 0.5} />
