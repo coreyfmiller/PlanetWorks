@@ -7,6 +7,7 @@ import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE } from '@/components/boat'
 import { PirateShip } from '@/components/pirate'
+import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
 import { getNearestPort, getPorts } from '@/components/ports'
@@ -117,6 +118,13 @@ export default function Home() {
     setTimeout(() => setPirateWarning(false), 3000)
   }, [])
 
+  const handleTreasureCollect = useCallback((value: number) => {
+    setCoins(prev => prev + value)
+    setSellMessage(`Found treasure! +${value} coins!`)
+    playCoinJingle()
+    setTimeout(() => setSellMessage(null), 2500)
+  }, [])
+
   const handleSell = useCallback(() => {
     if (catches.length === 0) return
     let total = 0
@@ -200,6 +208,7 @@ export default function Home() {
             onCaught={handlePirateCaught}
             onActiveChange={handlePirateActive}
           />
+          <TreasureChests boatPosition={boatPos} onCollect={handleTreasureCollect} />
           <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
           </>
         ) : (
