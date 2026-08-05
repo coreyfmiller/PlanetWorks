@@ -181,8 +181,14 @@ function Dock({ position }: { position: [number, number, number] }) {
 
       {/* Light glow */}
       <mesh position={[0.06, 0.17, 0.06]}>
-        <sphereGeometry args={[0.025, 8, 8]} />
+        <sphereGeometry args={[0.04, 8, 8]} />
         <meshBasicMaterial color="#ffcc44" transparent opacity={0.25} />
+      </mesh>
+
+      {/* Tall light beam visible from far away */}
+      <mesh position={[0.06, 0.35, 0.06]}>
+        <cylinderGeometry args={[0.002, 0.015, 0.3, 6]} />
+        <meshBasicMaterial color="#ffdd44" transparent opacity={0.2} />
       </mesh>
 
       {/* Roof/cap */}
