@@ -4,6 +4,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
+import { InstancedTrees, InstancedHouses } from '@/components/instanced-objects'
 
 // 5 large continents + 10 medium islands for ~50/50 coverage
 interface IslandDef {
@@ -386,20 +387,11 @@ export function Planet({
       {/* Shore foam */}
       {shoreFoam && <ShoreFoam wideBeach={wideBeach} />}
 
-      {/* Trees by biome - 5 types with rotation */}
-      {treeData.map((tree, i) => {
-        const s = tree.scale * treeScale
-        if (tree.type === 'palm') return <PalmTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
-        if (tree.type === 'pine') return <PineTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
-        if (tree.type === 'oak') return <OakTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
-        if (tree.type === 'birch') return <BirchTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
-        return <BushTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
-      })}
+      {/* Trees - instanced */}
+      <InstancedTrees trees={treeData} treeScale={treeScale} />
 
-      {/* Villages */}
-      {houseData.map((house, i) => (
-        <House key={i} position={house.pos} rotY={house.rotY} color={house.color} roofColor={house.roofColor} scale={house.scale} />
-      ))}
+      {/* Villages - instanced */}
+      <InstancedHouses houses={houseData} />
 
       {/* Atmosphere glow */}
       {atmosphere && <AtmosphereGlow />}
