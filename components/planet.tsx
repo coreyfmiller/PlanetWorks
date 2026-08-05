@@ -954,7 +954,7 @@ function SimpleWater() {
       <meshPhongMaterial
         color="#1a7fc4"
         transparent
-        opacity={0.5}
+        opacity={0.35}
         shininess={40}
         specular={new THREE.Color('#446688')}
       />
@@ -1038,7 +1038,7 @@ function AnimatedWater() {
           color += vec3(1.0, 0.98, 0.95) * spec * 0.5;
           float foam = smoothstep(0.58, 0.65, waves);
           color = mix(color, vec3(0.9, 0.95, 1.0), foam * 0.3);
-          float alpha = 0.45;
+          float alpha = 0.32;
           gl_FragColor = vec4(color, alpha);
         }
       `,
