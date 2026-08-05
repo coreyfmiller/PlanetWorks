@@ -63,19 +63,19 @@ export default function ModelsPage() {
         <ModelViewer path="/models/boat-motor.glb" label="Lv.4 — Motor Engine" description="300 coins. White fiberglass, chrome outboard, no sails." scale={1} />
       </Section>
 
-      <Section title="Vehicles">
-        <ModelViewer path="/models/airplane.glb" label="Biplane" description="Vintage red biplane with wooden propeller and fabric wings." scale={1} />
-        <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" description="Dark weathered hull, torn black sails, skull and crossbones." scale={1} />
-      </Section>
-
-      <Section title="Structures">
-        <ModelViewer path="/models/port.glb" label="Port / Harbor" description="Wooden pier, lighthouse, fish market shack, crates and barrels." scale={1} />
-      </Section>
-
-      <Section title="Trees (Low Poly)">
+      <Section title="Trees (Low Poly — In Game)">
         <ModelViewer path="/models/tree-conifer.glb" label="Conifer" description="Pine/fir. Used in highland and forest biomes." scale={1} />
         <ModelViewer path="/models/tree-broadleaf.glb" label="Broadleaf" description="Oak/birch. Used in grassland and mid-elevation." scale={1} />
         <ModelViewer path="/models/tree-palm.glb" label="Palm" description="Tropical. Placed near coastlines and beaches." scale={1} />
+      </Section>
+
+      <Section title="Vehicles">
+        <ModelViewer path="/models/airplane.glb" label="Biplane" description="Vintage red biplane with wooden propeller and fabric wings." scale={1} />
+        <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" description="Dark weathered hull, torn black sails, skull and crossbones. (37MB, may take time to load)" scale={1} />
+      </Section>
+
+      <Section title="Structures">
+        <ModelViewer path="/models/port.glb" label="Port / Harbor" description="Wooden pier, lighthouse, fish market shack, crates and barrels. (42MB, may take time to load)" scale={1} />
       </Section>
     </div>
   )
