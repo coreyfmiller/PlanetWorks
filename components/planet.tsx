@@ -391,9 +391,6 @@ export function Planet({
       {/* Trees - instanced */}
       <InstancedTrees trees={treeData} treeScale={treeScale} />
 
-      {/* Villages - instanced */}
-      <InstancedHouses houses={houseData} />
-
       {/* Ports/docks */}
       <PortDocks />
 

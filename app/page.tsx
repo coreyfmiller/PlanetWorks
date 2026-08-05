@@ -5,20 +5,13 @@ import { Canvas, useThree } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
-import { Boat, FishCatch } from '@/components/boat'
+import { Boat, FishCatch, RODS } from '@/components/boat'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
 import { getNearestPort } from '@/components/ports'
 import * as THREE from 'three'
 
 type Mode = 'globe' | 'fly' | 'boat'
-
-const FISH_PRICES: Record<string, number> = {
-  common: 5,
-  uncommon: 15,
-  rare: 50,
-  legendary: 200,
-}
 
 export default function Home() {
   // Core
@@ -35,6 +28,8 @@ export default function Home() {
   const [coins, setCoins] = useState(0)
   const [nearPort, setNearPort] = useState(false)
   const [sellMessage, setSellMessage] = useState<string | null>(null)
+  const [rodLevel, setRodLevel] = useState(1)
+  const [showShop, setShowShop] = useState(false)
 
   const handleCatch = useCallback((fish: FishCatch) => {
     setCatches(prev => [...prev, fish])
@@ -51,7 +46,7 @@ export default function Home() {
     if (catches.length === 0) return
     let total = 0
     for (const fish of catches) {
-      total += FISH_PRICES[fish.rarity] || 5
+      total += fish.value
     }
     setCoins(prev => prev + total)
     setSellMessage(`Sold ${catches.length} fish for ${total} coins!`)
@@ -120,7 +115,7 @@ export default function Home() {
         {mode === 'fly' ? (
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
-          <Boat onCatch={handleCatch} onFishingState={setFishingState} onPositionUpdate={handlePositionUpdate} />
+          <Boat onCatch={handleCatch} onFishingState={setFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} />
         ) : (
           <FreeOrbit />
         )}
@@ -191,6 +186,7 @@ export default function Home() {
               backdropFilter: 'blur(8px)',
               textAlign: 'center',
               border: lastCatch.rarity === 'legendary' ? '2px solid gold' :
+                lastCatch.rarity === 'epic' ? '2px solid #ff6600' :
                 lastCatch.rarity === 'rare' ? '2px solid #a855f7' :
                 lastCatch.rarity === 'uncommon' ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.2)',
             }}>
@@ -200,11 +196,12 @@ export default function Home() {
                 fontSize: 11,
                 marginTop: 4,
                 color: lastCatch.rarity === 'legendary' ? 'gold' :
+                  lastCatch.rarity === 'epic' ? '#ff6600' :
                   lastCatch.rarity === 'rare' ? '#a855f7' :
                   lastCatch.rarity === 'uncommon' ? '#3b82f6' : '#aaa',
                 textTransform: 'uppercase',
                 letterSpacing: 1,
-              }}>{lastCatch.rarity}</div>
+              }}>{lastCatch.rarity} · 🪙 {lastCatch.value}</div>
             </div>
           )}
 
@@ -228,46 +225,151 @@ export default function Home() {
           </div>
 
           {/* Port sell prompt */}
-          {nearPort && catches.length > 0 && (
-            <div
-              onClick={handleSell}
-              style={{
-                position: 'absolute',
-                bottom: 80,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'rgba(0,100,0,0.8)',
-                borderRadius: 12,
-                padding: '10px 20px',
-                color: 'white',
-                fontSize: 14,
-                fontFamily: 'system-ui, sans-serif',
-                backdropFilter: 'blur(8px)',
-                cursor: 'pointer',
-                border: '1px solid rgba(255,255,255,0.3)',
-                textAlign: 'center',
-              }}
-            >
-              Press E or click to sell {catches.length} fish
+          {nearPort && catches.length > 0 && !showShop && (
+            <div style={{ position: 'absolute', bottom: 80, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8 }}>
+              <div
+                onClick={handleSell}
+                style={{
+                  background: 'rgba(0,100,0,0.8)',
+                  borderRadius: 12,
+                  padding: '10px 20px',
+                  color: 'white',
+                  fontSize: 14,
+                  fontFamily: 'system-ui, sans-serif',
+                  backdropFilter: 'blur(8px)',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  textAlign: 'center',
+                }}
+              >
+                Press E to sell {catches.length} fish
+              </div>
+              <div
+                onClick={() => setShowShop(true)}
+                style={{
+                  background: 'rgba(100,50,0,0.8)',
+                  borderRadius: 12,
+                  padding: '10px 20px',
+                  color: 'white',
+                  fontSize: 14,
+                  fontFamily: 'system-ui, sans-serif',
+                  backdropFilter: 'blur(8px)',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  textAlign: 'center',
+                }}
+              >
+                🏪 Shop
+              </div>
             </div>
           )}
 
-          {nearPort && catches.length === 0 && (
+          {nearPort && catches.length === 0 && !showShop && (
+            <div style={{ position: 'absolute', bottom: 80, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 8 }}>
+              <div style={{
+                background: 'rgba(0,0,0,0.6)',
+                borderRadius: 12,
+                padding: '8px 16px',
+                color: 'rgba(255,255,255,0.6)',
+                fontSize: 13,
+                fontFamily: 'system-ui, sans-serif',
+                backdropFilter: 'blur(8px)',
+                textAlign: 'center',
+              }}>
+                🏪 Port — Catch some fish to sell!
+              </div>
+              <div
+                onClick={() => setShowShop(true)}
+                style={{
+                  background: 'rgba(100,50,0,0.8)',
+                  borderRadius: 12,
+                  padding: '8px 16px',
+                  color: 'white',
+                  fontSize: 13,
+                  fontFamily: 'system-ui, sans-serif',
+                  backdropFilter: 'blur(8px)',
+                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                }}
+              >
+                🏪 Shop
+              </div>
+            </div>
+          )}
+
+          {/* Rod Shop */}
+          {showShop && (
             <div style={{
               position: 'absolute',
-              bottom: 80,
+              top: '50%',
               left: '50%',
-              transform: 'translateX(-50%)',
-              background: 'rgba(0,0,0,0.6)',
-              borderRadius: 12,
-              padding: '8px 16px',
-              color: 'rgba(255,255,255,0.6)',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(20,10,0,0.95)',
+              borderRadius: 16,
+              padding: '20px 24px',
+              color: 'white',
               fontSize: 13,
               fontFamily: 'system-ui, sans-serif',
-              backdropFilter: 'blur(8px)',
-              textAlign: 'center',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,200,100,0.3)',
+              minWidth: 280,
+              maxHeight: '70vh',
+              overflowY: 'auto',
             }}>
-              🏪 Port — Catch some fish to sell!
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 16, fontWeight: 'bold' }}>🎣 Rod Shop</span>
+                <button onClick={() => setShowShop(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 12 }}>Current: {RODS[rodLevel - 1].name} · 🪙 {coins}</div>
+              {RODS.map(rod => {
+                const owned = rodLevel >= rod.level
+                const canAfford = coins >= rod.cost
+                const isNext = rod.level === rodLevel + 1
+                return (
+                  <div key={rod.level} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 10px',
+                    marginBottom: 6,
+                    borderRadius: 8,
+                    background: owned ? 'rgba(0,100,0,0.3)' : isNext ? 'rgba(100,80,0,0.3)' : 'rgba(255,255,255,0.05)',
+                    border: isNext ? '1px solid rgba(255,200,0,0.4)' : '1px solid transparent',
+                    opacity: owned ? 0.6 : 1,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: isNext ? 'bold' : 'normal' }}>{rod.name}</div>
+                      <div style={{ fontSize: 11, opacity: 0.6 }}>{rod.description}</div>
+                    </div>
+                    {owned ? (
+                      <span style={{ fontSize: 11, color: '#44ff44' }}>✓ Owned</span>
+                    ) : isNext ? (
+                      <button
+                        onClick={() => {
+                          if (canAfford) {
+                            setCoins(prev => prev - rod.cost)
+                            setRodLevel(rod.level)
+                          }
+                        }}
+                        style={{
+                          background: canAfford ? '#cc8800' : '#555',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          color: 'white',
+                          fontSize: 12,
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          opacity: canAfford ? 1 : 0.5,
+                        }}
+                      >
+                        🪙 {rod.cost}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, opacity: 0.4 }}>🔒 {rod.cost}</span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
 

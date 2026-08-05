@@ -8,46 +8,92 @@ import { islandInfluence } from '@/components/planet'
 export interface FishCatch {
   name: string
   emoji: string
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary'
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary'
+  value: number
+  rodLevel: number // minimum rod level to catch this fish
 }
 
-const FISH_TABLE: FishCatch[] = [
-  { name: 'Mackerel', emoji: '🐟', rarity: 'common' },
-  { name: 'Herring', emoji: '🐟', rarity: 'common' },
-  { name: 'Cod', emoji: '🐟', rarity: 'common' },
-  { name: 'Salmon', emoji: '🐠', rarity: 'uncommon' },
-  { name: 'Tuna', emoji: '🐠', rarity: 'uncommon' },
-  { name: 'Swordfish', emoji: '🗡️', rarity: 'rare' },
-  { name: 'Giant Squid', emoji: '🦑', rarity: 'rare' },
-  { name: 'Golden Marlin', emoji: '✨', rarity: 'legendary' },
+// 20 fish ladder - you need better rods to catch rarer fish
+export const FISH_TABLE: FishCatch[] = [
+  // Rod Level 1 (Starter Rod - free)
+  { name: 'Minnow', emoji: '🐟', rarity: 'common', value: 2, rodLevel: 1 },
+  { name: 'Perch', emoji: '🐟', rarity: 'common', value: 3, rodLevel: 1 },
+  { name: 'Herring', emoji: '🐟', rarity: 'common', value: 4, rodLevel: 1 },
+  { name: 'Mackerel', emoji: '🐟', rarity: 'common', value: 5, rodLevel: 1 },
+
+  // Rod Level 2 (Fiberglass Rod - 30 coins)
+  { name: 'Trout', emoji: '🐟', rarity: 'common', value: 8, rodLevel: 2 },
+  { name: 'Bass', emoji: '🐟', rarity: 'common', value: 10, rodLevel: 2 },
+  { name: 'Cod', emoji: '🐠', rarity: 'uncommon', value: 15, rodLevel: 2 },
+  { name: 'Flounder', emoji: '🐠', rarity: 'uncommon', value: 18, rodLevel: 2 },
+
+  // Rod Level 3 (Carbon Rod - 80 coins)
+  { name: 'Salmon', emoji: '🐠', rarity: 'uncommon', value: 25, rodLevel: 3 },
+  { name: 'Red Snapper', emoji: '🐠', rarity: 'uncommon', value: 30, rodLevel: 3 },
+  { name: 'Tuna', emoji: '🐠', rarity: 'rare', value: 40, rodLevel: 3 },
+  { name: 'Barracuda', emoji: '🦈', rarity: 'rare', value: 50, rodLevel: 3 },
+
+  // Rod Level 4 (Deep Sea Rod - 200 coins)
+  { name: 'Swordfish', emoji: '🗡️', rarity: 'rare', value: 75, rodLevel: 4 },
+  { name: 'Giant Squid', emoji: '🦑', rarity: 'rare', value: 90, rodLevel: 4 },
+  { name: 'Manta Ray', emoji: '🦈', rarity: 'epic', value: 120, rodLevel: 4 },
+  { name: 'Hammerhead', emoji: '🦈', rarity: 'epic', value: 150, rodLevel: 4 },
+
+  // Rod Level 5 (Legendary Rod - 500 coins)
+  { name: 'Blue Whale', emoji: '🐋', rarity: 'epic', value: 200, rodLevel: 5 },
+  { name: 'Oarfish', emoji: '🐉', rarity: 'epic', value: 250, rodLevel: 5 },
+  { name: 'Kraken Tentacle', emoji: '🦑', rarity: 'legendary', value: 400, rodLevel: 5 },
+  { name: 'Golden Leviathan', emoji: '✨', rarity: 'legendary', value: 1000, rodLevel: 5 },
 ]
 
-function rollFish(): FishCatch {
+export interface RodDef {
+  level: number
+  name: string
+  cost: number
+  description: string
+}
+
+export const RODS: RodDef[] = [
+  { level: 1, name: 'Starter Rod', cost: 0, description: 'Basic wooden rod' },
+  { level: 2, name: 'Fiberglass Rod', cost: 30, description: 'Catches better fish' },
+  { level: 3, name: 'Carbon Rod', cost: 80, description: 'Deep water capable' },
+  { level: 4, name: 'Deep Sea Rod', cost: 200, description: 'For serious anglers' },
+  { level: 5, name: 'Legendary Rod', cost: 500, description: 'Catches the uncatchable' },
+]
+
+export function rollFish(rodLevel: number): FishCatch {
+  // Filter fish available at this rod level
+  const available = FISH_TABLE.filter(f => f.rodLevel <= rodLevel)
+
+  // Weight toward newer unlocks but still allow lower fish
   const roll = Math.random()
-  if (roll < 0.5) {
-    const commons = FISH_TABLE.filter(f => f.rarity === 'common')
-    return commons[Math.floor(Math.random() * commons.length)]
-  } else if (roll < 0.8) {
-    const uncommons = FISH_TABLE.filter(f => f.rarity === 'uncommon')
-    return uncommons[Math.floor(Math.random() * uncommons.length)]
-  } else if (roll < 0.95) {
-    const rares = FISH_TABLE.filter(f => f.rarity === 'rare')
-    return rares[Math.floor(Math.random() * rares.length)]
-  } else {
-    return FISH_TABLE.find(f => f.rarity === 'legendary')!
+  const currentTier = available.filter(f => f.rodLevel === rodLevel)
+  const lowerTier = available.filter(f => f.rodLevel < rodLevel)
+
+  if (roll < 0.4 && currentTier.length > 0) {
+    // 40% chance current tier
+    return currentTier[Math.floor(Math.random() * currentTier.length)]
+  } else if (roll < 0.75 && lowerTier.length > 0) {
+    // 35% chance lower tier
+    return lowerTier[Math.floor(Math.random() * lowerTier.length)]
+  } else if (currentTier.length > 0) {
+    // 25% random from all available
+    return available[Math.floor(Math.random() * available.length)]
   }
+  return available[Math.floor(Math.random() * available.length)]
 }
 
 type FishingState = 'idle' | 'cast' | 'waiting' | 'bite' | 'caught' | 'missed'
 
 interface BoatProps {
   wake?: boolean
+  rodLevel?: number
   onCatch?: (fish: FishCatch) => void
   onFishingState?: (state: FishingState) => void
   onPositionUpdate?: (pos: THREE.Vector3) => void
 }
 
-export function Boat({ wake = true, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
+export function Boat({ wake = true, rodLevel = 1, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
   const groupRef = useRef<THREE.Group>(null)
   const bobberRef = useRef<THREE.Group>(null)
   const wakeRef = useRef<THREE.Points>(null)
@@ -110,7 +156,7 @@ export function Boat({ wake = true, onCatch, onFishingState, onPositionUpdate }:
       } else if (s.fishing === 'bite') {
         s.fishing = 'caught'
         s.fishTimer = 0
-        const fish = rollFish()
+        const fish = rollFish(rodLevel)
         onCatch?.(fish)
         onFishingState?.('caught')
       } else if (s.fishing === 'waiting') {
