@@ -319,6 +319,58 @@ export function Planet({
 
   const treeScale = biggerTrees ? 2 : 1
 
+  // Villages: small houses on flat inland areas
+  const houseData = useMemo(() => {
+    const houses: { pos: [number, number, number]; rotY: number; color: string; roofColor: string; scale: number }[] = []
+    const houseColors = ['#e8d5b0', '#d4a574', '#c9b896', '#f0e6d3', '#b8956b']
+    const roofColors = ['#8B4513', '#a0522d', '#cc4444', '#6b3a2a', '#556b2f']
+    const count = 120
+    for (let i = 0; i < count; i++) {
+      const phi = Math.acos(1 - 2 * (i + 0.5) / count)
+      const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5) + 1.7 // offset from trees
+      const nx = Math.sin(phi) * Math.cos(theta)
+      const ny = Math.cos(phi)
+      const nz = Math.sin(phi) * Math.sin(theta)
+
+      const { influence, nearCoast } = islandInfluence(nx, ny, nz, wideBeach)
+      // Only place on flat inland areas (not coast, not mountains)
+      if (influence < 0.25 || influence > 0.55 || nearCoast) continue
+
+      // Sparse placement via noise
+      const placement = simplex3(nx * 12 + 100, ny * 12 + 100, nz * 12 + 100) * 0.5 + 0.5
+      if (placement < 0.55) continue
+
+      const detail = fbmSimplex(nx * 12, ny * 12, nz * 12, 5) * 0.5 + 0.5
+      const cliff = Math.pow(influence, 0.65)
+      let height = 3.0 + cliff * 0.16 + detail * influence * 0.07
+
+      const mountain1Dist = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.7) ** 2 + (nz - 0.3) ** 2)
+      const mountain2Dist = Math.sqrt((nx + 0.6) ** 2 + (ny - 0.2) ** 2 + (nz + 0.5) ** 2)
+      if (mountain1Dist < 0.3 && influence > 0.3) {
+        const peak = (1 - mountain1Dist / 0.3) * 0.2
+        height += peak * peak * 1.5
+      }
+      if (mountain2Dist < 0.25 && influence > 0.3) {
+        const peak = (1 - mountain2Dist / 0.25) * 0.18
+        height += peak * peak * 1.2
+      }
+      height -= 0.01
+
+      const colorIdx = Math.floor(simplex3(nx * 77, ny * 77, nz * 77) * 0.5 * 4.99 + 2.5)
+      const roofIdx = Math.floor(simplex3(nx * 88, ny * 88, nz * 88) * 0.5 * 4.99 + 2.5)
+
+      houses.push({
+        pos: [nx * height, ny * height, nz * height],
+        rotY: simplex3(nx * 60, ny * 60, nz * 60) * Math.PI,
+        color: houseColors[colorIdx % houseColors.length],
+        roofColor: roofColors[roofIdx % roofColors.length],
+        scale: 0.025 + simplex3(nx * 90, ny * 90, nz * 90) * 0.5 * 0.01,
+      })
+    }
+    return houses
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wideBeach])
+
   return (
     <group>
       {/* Planet terrain */}
@@ -338,6 +390,11 @@ export function Planet({
         if (tree.type === 'birch') return <BirchTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
         return <BushTree key={i} position={tree.pos} scale={s} rotY={tree.rotY} />
       })}
+
+      {/* Villages */}
+      {houseData.map((house, i) => (
+        <House key={i} position={house.pos} rotY={house.rotY} color={house.color} roofColor={house.roofColor} scale={house.scale} />
+      ))}
 
       {/* Atmosphere glow */}
       {atmosphere && <AtmosphereGlow />}
@@ -753,6 +810,35 @@ function BirchTree({ position, scale, rotY = 0 }: { position: [number, number, n
       <mesh position={[0, 1.8, 0]}>
         <sphereGeometry args={[0.25, 5, 4]} />
         <meshLambertMaterial color="#81C784" flatShading />
+      </mesh>
+    </group>
+  )
+}
+
+// House - small box with triangle roof
+function House({ position, rotY = 0, color, roofColor, scale }: {
+  position: [number, number, number]; rotY?: number; color: string; roofColor: string; scale: number
+}) {
+  const up = new THREE.Vector3(...position).normalize()
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  const rotQ = new THREE.Quaternion().setFromAxisAngle(up, rotY)
+  q.premultiply(rotQ)
+  return (
+    <group position={position} quaternion={q} scale={scale}>
+      {/* Walls */}
+      <mesh position={[0, 0.35, 0]}>
+        <boxGeometry args={[0.6, 0.7, 0.5]} />
+        <meshLambertMaterial color={color} flatShading />
+      </mesh>
+      {/* Roof */}
+      <mesh position={[0, 0.82, 0]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[0.5, 0.4, 4]} />
+        <meshLambertMaterial color={roofColor} flatShading />
+      </mesh>
+      {/* Door */}
+      <mesh position={[0, 0.18, 0.26]}>
+        <boxGeometry args={[0.12, 0.3, 0.02]} />
+        <meshLambertMaterial color="#3e2a1a" flatShading />
       </mesh>
     </group>
   )
