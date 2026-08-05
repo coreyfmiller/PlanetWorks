@@ -628,7 +628,7 @@ export default function Home() {
               transform: 'translate(-50%, -50%)',
               background: 'rgba(20,10,0,0.95)',
               borderRadius: 16,
-              padding: '20px 24px',
+              padding: '0',
               color: 'white',
               fontSize: 13,
               fontFamily: 'system-ui, sans-serif',
@@ -636,12 +636,15 @@ export default function Home() {
               border: '1px solid rgba(255,200,100,0.3)',
               minWidth: 280,
               maxHeight: '70vh',
-              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 16, fontWeight: 'bold' }}>🎣 Rod Shop</span>
-                <button onClick={() => setShowShop(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 10px', position: 'sticky', top: 0, background: 'rgba(20,10,0,0.98)', zIndex: 1, borderBottom: '1px solid rgba(255,200,100,0.1)' }}>
+                <span style={{ fontSize: 16, fontWeight: 'bold' }}>🎣 Shop</span>
+                <button onClick={() => setShowShop(false)} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: 'white', fontSize: 16, cursor: 'pointer', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
               </div>
+              <div style={{ overflowY: 'auto', padding: '12px 20px 20px' }}>
               <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 12 }}>Current: {RODS[rodLevel - 1].name} · 🪙 {coins}</div>
               {RODS.map(rod => {
                 const owned = rodLevel >= rod.level
@@ -796,6 +799,7 @@ export default function Home() {
                   </div>
                 )
               })}
+              </div>
             </div>
           )}
 
