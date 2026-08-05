@@ -5,7 +5,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
-import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE } from '@/components/boat'
+import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE, BAITS } from '@/components/boat'
 import { PirateShip } from '@/components/pirate'
 import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
@@ -61,6 +61,10 @@ export default function Home() {
     if (typeof window === 'undefined') return 1
     return Number(localStorage.getItem('pw_boatOwned')) || 1
   })
+  const [baitLevel, setBaitLevel] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Number(localStorage.getItem('pw_baitLevel')) || 1
+  })
   const [showShop, setShowShop] = useState(false)
   const [caughtSpecies, setCaughtSpecies] = useState<string[]>(() => {
     if (typeof window === 'undefined') return []
@@ -82,6 +86,7 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('pw_rodLevel', String(rodLevel)) } catch {} }, [rodLevel])
   useEffect(() => { try { localStorage.setItem('pw_boatSpeed', String(boatSpeed)) } catch {} }, [boatSpeed])
   useEffect(() => { try { localStorage.setItem('pw_boatOwned', String(boatOwned)) } catch {} }, [boatOwned])
+  useEffect(() => { try { localStorage.setItem('pw_baitLevel', String(baitLevel)) } catch {} }, [baitLevel])
   useEffect(() => { try { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) } catch {} }, [caughtSpecies])
 
   const handleCatch = useCallback((fish: FishCatch) => {
@@ -239,7 +244,7 @@ export default function Home() {
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
           <>
-          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo} />
+          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} baitLevel={baitLevel} cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo} />
           <PirateShip
             boatPosition={boatPos}
             boatMaxSpeed={BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].maxSpeed}
@@ -721,6 +726,58 @@ export default function Home() {
                       </button>
                     ) : (
                       <span style={{ fontSize: 11, opacity: 0.4 }}>🔒 {spd.cost}</span>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Bait */}
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 14, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>🪱 Bait</div>
+              {BAITS.map(bait => {
+                const owned = baitLevel >= bait.level
+                const canAfford = coins >= bait.cost
+                const isNext = bait.level === baitLevel + 1
+                return (
+                  <div key={bait.level} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 10px',
+                    marginBottom: 6,
+                    borderRadius: 8,
+                    background: owned ? 'rgba(0,100,0,0.3)' : isNext ? 'rgba(100,80,0,0.3)' : 'rgba(255,255,255,0.05)',
+                    border: isNext ? '1px solid rgba(255,200,0,0.4)' : '1px solid transparent',
+                    opacity: owned ? 0.6 : 1,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: isNext ? 'bold' : 'normal' }}>{bait.name}</div>
+                      <div style={{ fontSize: 11, opacity: 0.6 }}>{bait.description}</div>
+                    </div>
+                    {owned ? (
+                      <span style={{ fontSize: 11, color: '#44ff44' }}>✓ Owned</span>
+                    ) : isNext ? (
+                      <button
+                        onClick={() => {
+                          if (canAfford) {
+                            setCoins(prev => prev - bait.cost)
+                            setBaitLevel(bait.level)
+                          }
+                        }}
+                        style={{
+                          background: canAfford ? '#cc8800' : '#555',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          color: 'white',
+                          fontSize: 12,
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          opacity: canAfford ? 1 : 0.5,
+                        }}
+                      >
+                        🪙 {bait.cost}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, opacity: 0.4 }}>🔒 {bait.cost}</span>
                     )}
                   </div>
                 )

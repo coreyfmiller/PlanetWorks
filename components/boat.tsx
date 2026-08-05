@@ -77,24 +77,39 @@ export const BOAT_SPEEDS: BoatSpeedDef[] = [
   { level: 4, name: 'Motor Engine', cost: 300, maxSpeed: 1.5, cargo: 20 },
 ]
 
-export function rollFish(rodLevel: number): FishCatch {
+export interface BaitDef {
+  level: number
+  name: string
+  cost: number
+  description: string
+  rarityBoost: number // 0-1, shifts roll toward rarer fish
+}
+
+export const BAITS: BaitDef[] = [
+  { level: 1, name: 'Worms', cost: 0, description: 'Free, basic bait', rarityBoost: 0 },
+  { level: 2, name: 'Shrimp', cost: 5, description: 'Faster bites', rarityBoost: 0.1 },
+  { level: 3, name: 'Squid Chunks', cost: 15, description: 'Attracts bigger fish', rarityBoost: 0.2 },
+  { level: 4, name: 'Golden Lure', cost: 40, description: 'Best chance at rare catches', rarityBoost: 0.35 },
+]
+
+export function rollFish(rodLevel: number, baitLevel: number = 1): FishCatch {
   // Filter fish available at this rod level
   const available = FISH_TABLE.filter(f => f.rodLevel <= rodLevel)
+  const bait = BAITS[Math.min(baitLevel, BAITS.length) - 1]
+  const boost = bait.rarityBoost
 
-  // Weight toward newer unlocks but still allow lower fish
   const roll = Math.random()
   const currentTier = available.filter(f => f.rodLevel === rodLevel)
   const lowerTier = available.filter(f => f.rodLevel < rodLevel)
 
-  if (roll < 0.4 && currentTier.length > 0) {
-    // 40% chance current tier
+  // Bait boost increases chance of current tier (better fish)
+  const currentChance = 0.4 + boost
+  const lowerChance = 0.35 - boost * 0.5
+
+  if (roll < currentChance && currentTier.length > 0) {
     return currentTier[Math.floor(Math.random() * currentTier.length)]
-  } else if (roll < 0.75 && lowerTier.length > 0) {
-    // 35% chance lower tier
+  } else if (roll < currentChance + lowerChance && lowerTier.length > 0) {
     return lowerTier[Math.floor(Math.random() * lowerTier.length)]
-  } else if (currentTier.length > 0) {
-    // 25% random from all available
-    return available[Math.floor(Math.random() * available.length)]
   }
   return available[Math.floor(Math.random() * available.length)]
 }
@@ -105,13 +120,14 @@ interface BoatProps {
   wake?: boolean
   rodLevel?: number
   speedLevel?: number
+  baitLevel?: number
   cargoFull?: boolean
   onCatch?: (fish: FishCatch) => void
   onFishingState?: (state: FishingState | 'holdfull') => void
   onPositionUpdate?: (pos: THREE.Vector3, forward?: THREE.Vector3) => void
 }
 
-export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, cargoFull = false, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
+export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1, cargoFull = false, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
   const groupRef = useRef<THREE.Group>(null)
   const bobberRef = useRef<THREE.Group>(null)
   const wakeRef = useRef<THREE.Points>(null)
@@ -188,7 +204,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, cargoFull = fa
       } else if (s.fishing === 'bite') {
         s.fishing = 'caught'
         s.fishTimer = 0
-        const fish = rollFish(rodLevel)
+        const fish = rollFish(rodLevel, baitLevel)
         // Consume from nearest school
         const pos = new THREE.Vector3(0, 1, 0).applyQuaternion(s.quat).normalize().multiplyScalar(s.altitude)
         consumeFishFromSchool(pos)
