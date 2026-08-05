@@ -81,7 +81,7 @@ export default function Home() {
           backdropFilter: 'blur(8px)',
           textAlign: 'center',
         }}>
-          WASD to steer · Space/Shift for altitude · W/S for speed
+          WASD to steer · W/S for speed
         </div>
       )}
 
