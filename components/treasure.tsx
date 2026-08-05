@@ -4,6 +4,7 @@ import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
+import { fbmSimplex } from '@/lib/simplex'
 
 interface TreasureProps {
   boatPosition: THREE.Vector3 | null
@@ -39,7 +40,7 @@ export function TreasureChests({ boatPosition, onCollect }: TreasureProps) {
         if (s.collected[i]) continue
         const chestPos = new THREE.Vector3(...s.chests[i])
         const dist = boatPosition.distanceTo(chestPos)
-        if (dist < 0.2) {
+        if (dist < 0.3) {
           s.collected[i] = true
           const value = 10 + Math.floor(Math.random() * 20) // 10-30 coins
           onCollect(value)
@@ -121,18 +122,20 @@ function generateChestPositions(): [number, number, number][] {
     const ny = Math.cos(phi)
     const nz = Math.sin(phi) * Math.sin(theta)
 
-    const { influence } = islandInfluence(nx, ny, nz, true)
+    const { influence, nearCoast } = islandInfluence(nx, ny, nz, true)
 
-    // Place on the very edge of coastline (shallow water, barely accessible)
-    if (influence > 0.03 && influence < 0.1) {
-      const r = 3.04
-      positions.push([nx * r, ny * r, nz * r])
+    // Place on land near the coast (beach area)
+    if (influence > 0.1 && influence < 0.25) {
+      const detail = fbmSimplex(nx * 12, ny * 12, nz * 12, 5) * 0.5 + 0.5
+      const cliff = Math.pow(influence, 0.65)
+      const height = 3.0 + cliff * 0.16 + detail * influence * 0.07
+      positions.push([nx * height, ny * height, nz * height])
     }
   }
 
-  // Fallback if not enough found
+  // Fallback
   while (positions.length < 3) {
-    positions.push([3.04, 0, 0])
+    positions.push([3.05, 0, 0])
   }
 
   return positions
