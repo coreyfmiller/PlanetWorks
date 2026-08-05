@@ -51,6 +51,9 @@ export default function ModelsPage() {
         <ModelViewer path="/models/airplane.glb" label="Airplane" scale={1} />
         <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" scale={1} />
         <ModelViewer path="/models/port.glb" label="Port / Dock" scale={1} />
+        <ModelViewer path="/models/tree-conifer.glb" label="Conifer Tree" scale={1} />
+        <ModelViewer path="/models/tree-broadleaf.glb" label="Broadleaf Tree" scale={1} />
+        <ModelViewer path="/models/tree-palm.glb" label="Palm Tree" scale={1} />
       </div>
     </div>
   )
