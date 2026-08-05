@@ -1,18 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
+import { Boat, FishCatch } from '@/components/boat'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
+
+type Mode = 'globe' | 'fly' | 'boat'
 
 export default function Home() {
   // Core
   const [waves, setWaves] = useState(true)
   const [atmosphere, setAtmosphere] = useState(true)
-  const [flyMode, setFlyMode] = useState(false)
+  const [mode, setMode] = useState<Mode>('globe')
+
+  // Fishing
+  const [fishingState, setFishingState] = useState<string>('idle')
+  const [catches, setCatches] = useState<FishCatch[]>([])
+  const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
+
+  const handleCatch = useCallback((fish: FishCatch) => {
+    setCatches(prev => [...prev, fish])
+    setLastCatch(fish)
+    setTimeout(() => setLastCatch(null), 2500)
+  }, [])
 
   // New features
   const [moon, setMoon] = useState(false)
@@ -31,7 +45,7 @@ export default function Home() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <AmbientAudio flyMode={flyMode} />
+      <AmbientAudio flyMode={mode !== 'globe'} />
       <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
         <ambientLight intensity={dramaticLighting ? 0.2 : 0.5} />
@@ -58,18 +72,20 @@ export default function Home() {
           shoreFoam={shoreFoam}
         />
 
-        {flyMode ? (
+        {mode !== 'globe' ? (
           <SceneReset />
         ) : null}
-        {flyMode ? (
+        {mode === 'fly' ? (
           <Airplane trail={planeTrail} />
+        ) : mode === 'boat' ? (
+          <Boat onCatch={handleCatch} onFishingState={setFishingState} />
         ) : (
           <FreeOrbit />
         )}
       </Canvas>
 
-      {/* Fly mode hint */}
-      {flyMode && (
+      {/* Mode hint */}
+      {mode !== 'globe' && (
         <div style={{
           position: 'absolute',
           top: 20,
@@ -84,8 +100,90 @@ export default function Home() {
           backdropFilter: 'blur(8px)',
           textAlign: 'center',
         }}>
-          WASD to steer · W/S for speed
+          {mode === 'fly' ? 'WASD to steer · W/S for speed' : 'A/D to steer · W/S for speed · F to fish'}
         </div>
+      )}
+
+      {/* Fishing UI */}
+      {mode === 'boat' && (
+        <>
+          {/* Fishing status */}
+          {fishingState !== 'idle' && (
+            <div style={{
+              position: 'absolute',
+              top: 60,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: fishingState === 'bite' ? 'rgba(255,50,50,0.8)' : 'rgba(0,0,0,0.6)',
+              borderRadius: 10,
+              padding: '8px 16px',
+              color: 'white',
+              fontSize: 14,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              fontWeight: fishingState === 'bite' ? 'bold' : 'normal',
+              animation: fishingState === 'bite' ? 'pulse 0.3s ease-in-out infinite' : 'none',
+            }}>
+              {fishingState === 'cast' && '🎣 Casting...'}
+              {fishingState === 'waiting' && '🎣 Waiting for a bite...'}
+              {fishingState === 'bite' && '🐟 BITE! Press F!'}
+              {fishingState === 'caught' && '✅ Got one!'}
+              {fishingState === 'missed' && '❌ Missed!'}
+            </div>
+          )}
+
+          {/* Last catch popup */}
+          {lastCatch && (
+            <div style={{
+              position: 'absolute',
+              top: '40%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,0,0,0.8)',
+              borderRadius: 14,
+              padding: '16px 24px',
+              color: 'white',
+              fontSize: 18,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: lastCatch.rarity === 'legendary' ? '2px solid gold' :
+                lastCatch.rarity === 'rare' ? '2px solid #a855f7' :
+                lastCatch.rarity === 'uncommon' ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.2)',
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 4 }}>{lastCatch.emoji}</div>
+              <div>{lastCatch.name}</div>
+              <div style={{
+                fontSize: 11,
+                marginTop: 4,
+                color: lastCatch.rarity === 'legendary' ? 'gold' :
+                  lastCatch.rarity === 'rare' ? '#a855f7' :
+                  lastCatch.rarity === 'uncommon' ? '#3b82f6' : '#aaa',
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}>{lastCatch.rarity}</div>
+            </div>
+          )}
+
+          {/* Fish counter */}
+          {catches.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: 10,
+              padding: '6px 12px',
+              color: 'white',
+              fontSize: 13,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+            }}>
+              🐟 {catches.length}
+            </div>
+          )}
+        </>
       )}
 
       {/* Control panel */}
@@ -106,9 +204,13 @@ export default function Home() {
         maxHeight: '80vh',
         overflowY: 'auto',
       }}>
-        {/* Always visible */}
-        <Toggle label="✈ Fly Mode" value={flyMode} onChange={setFlyMode} />
-        {flyMode && <Toggle label="Contrail" value={planeTrail} onChange={setPlaneTrail} />}
+        {/* Always visible - mode selector */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <ModeButton label="🌍" active={mode === 'globe'} onClick={() => setMode('globe')} />
+          <ModeButton label="✈" active={mode === 'fly'} onClick={() => setMode('fly')} />
+          <ModeButton label="⛵" active={mode === 'boat'} onClick={() => setMode('boat')} />
+        </div>
+        {mode === 'fly' && <Toggle label="Contrail" value={planeTrail} onChange={setPlaneTrail} />}
 
         {/* Expand/collapse button */}
         <button
@@ -189,5 +291,26 @@ function Toggle({ label, value, onChange }: { label: string; value: boolean; onC
         }} />
       </button>
     </div>
+  )
+}
+
+function ModeButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        padding: '6px 10px',
+        borderRadius: 8,
+        border: active ? '1px solid #1a88c8' : '1px solid rgba(255,255,255,0.2)',
+        background: active ? 'rgba(26,136,200,0.3)' : 'transparent',
+        color: 'white',
+        fontSize: 16,
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      }}
+    >
+      {label}
+    </button>
   )
 }

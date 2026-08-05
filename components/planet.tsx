@@ -59,7 +59,7 @@ const ISLANDS: IslandDef[] = (() => {
   return islands
 })()
 
-function islandInfluence(nx: number, ny: number, nz: number, wideBeach: boolean): { influence: number; nearCoast: boolean } {
+export function islandInfluence(nx: number, ny: number, nz: number, wideBeach: boolean): { influence: number; nearCoast: boolean } {
   let maxInfluence = -1
 
   for (let i = 0; i < ISLANDS.length; i++) {
