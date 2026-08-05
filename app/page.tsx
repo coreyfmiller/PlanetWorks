@@ -2,11 +2,13 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { Canvas, useThree, useFrame } from '@react-three/fiber'
-import { Planet } from '@/components/planet'
+import { useGLTF } from '@react-three/drei'
+import { Planet, islandInfluence } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE, BAITS } from '@/components/boat'
 import { Walker } from '@/components/walker'
+import { LandResources } from '@/components/land-resources'
 import { PirateShip } from '@/components/pirate'
 import { TreasureChests } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
@@ -76,6 +78,9 @@ export default function Home() {
   const [piratePos, setPiratePos] = useState<THREE.Vector3 | null>(null)
   const [pirateActive, setPirateActive] = useState(false)
   const [showJournal, setShowJournal] = useState(false)
+  const [walkerSpawnPos, setWalkerSpawnPos] = useState<THREE.Vector3 | null>(null)
+  const [parkedBoatPos, setParkedBoatPos] = useState<THREE.Vector3 | null>(null)
+  const [walkerPos, setWalkerPos] = useState<THREE.Vector3 | null>(null)
   const [marketMultiplier, setMarketMultiplier] = useState(() => {
     const multipliers = [0.8, 1.0, 1.0, 1.2, 1.5, 2.0]
     return multipliers[Math.floor(Math.random() * multipliers.length)]
@@ -201,10 +206,42 @@ export default function Home() {
       if (e.code === 'KeyE' && nearPort && catches.length > 0) {
         handleSell()
       }
+      // G key to disembark/embark
+      if (e.code === 'KeyG') {
+        if (mode === 'boat' && boatPos) {
+          // Check if boat is near shore (look for land nearby)
+          const boatDir = boatPos.clone().normalize()
+          const { influence: boatInfluence } = islandInfluence(boatDir.x, boatDir.y, boatDir.z, true)
+          // Boat must be close to land (influence > 0 means near/on land transition)
+          if (boatInfluence > 0.02) {
+            // Find the nearest land point by stepping inward from boat position toward shore
+            let shorePos = boatPos.clone()
+            const step = boatDir.clone()
+            for (let i = 1; i <= 10; i++) {
+              // Sample slightly further up the sphere (toward land center)
+              const testDir = boatDir.clone().multiplyScalar(1 + i * 0.005).normalize()
+              const { influence: testInf } = islandInfluence(testDir.x, testDir.y, testDir.z, true)
+              if (testInf > 0.15) {
+                shorePos = testDir.multiplyScalar(boatPos.length())
+                break
+              }
+            }
+            setWalkerSpawnPos(shorePos)
+            setParkedBoatPos(boatPos.clone())
+            setMode('walk')
+          }
+        } else if (mode === 'walk') {
+          // Must be near the parked boat to re-board
+          if (parkedBoatPos && walkerPos && walkerPos.distanceTo(parkedBoatPos) < 0.8) {
+            setParkedBoatPos(null)
+            setMode('boat')
+          }
+        }
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [nearPort, catches, handleSell])
+  }, [nearPort, catches, handleSell, mode, boatPos, parkedBoatPos, walkerPos])
 
   // New features
   const [moon, setMoon] = useState(false)
@@ -271,7 +308,21 @@ export default function Home() {
           <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
           </>
         ) : mode === 'walk' ? (
-          <Walker />
+          <>
+          <Walker spawnPosition={walkerSpawnPos} onPositionUpdate={setWalkerPos} onChopTree={() => {
+            // Give wood to cargo
+            const maxCargo = BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo
+            if (catches.length < maxCargo) {
+              handleCatch({ name: 'Wood', emoji: '🪵', rarity: 'common', value: 6, rodLevel: 1 })
+            }
+          }} />
+          <LandResources
+            walkerPosition={walkerPos}
+            onCollect={handleCatch}
+            cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo}
+          />
+          {parkedBoatPos && <ParkedBoat position={parkedBoatPos} boatLevel={boatOwned} />}
+          </>
         ) : (
           <FreeOrbit />
         )}
@@ -293,7 +344,7 @@ export default function Home() {
           backdropFilter: 'blur(8px)',
           textAlign: 'center',
         }}>
-          {mode === 'fly' ? 'WASD to steer · W/S for speed' : mode === 'walk' ? 'WASD to walk' : 'A/D to steer · W/S for speed · F to fish'}
+          {mode === 'fly' ? 'WASD to steer · W/S for speed' : mode === 'walk' ? 'WASD to walk · Shift to sprint · E to collect · T to chop · G to board boat' : 'A/D to steer · W/S for speed · F to fish · G to disembark near shore'}
         </div>
       )}
 
@@ -851,6 +902,75 @@ export default function Home() {
         </>
       )}
 
+      {/* Walk mode UI */}
+      {mode === 'walk' && (
+        <>
+          {/* Coins + cargo */}
+          <div style={{
+            position: 'absolute',
+            top: 20,
+            right: 20,
+            background: 'rgba(0,0,0,0.6)',
+            borderRadius: 10,
+            padding: '6px 12px',
+            color: 'white',
+            fontSize: 13,
+            fontFamily: 'system-ui, sans-serif',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+          }}>
+            <span>🪙 {coins}</span>
+            {catches.length > 0 && <span>🎒 {catches.length}/{BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo}</span>}
+          </div>
+
+          {/* Last collect popup */}
+          {lastCatch && (
+            <div style={{
+              position: 'absolute',
+              top: '40%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,0,0,0.8)',
+              borderRadius: 14,
+              padding: '16px 24px',
+              color: 'white',
+              fontSize: 18,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: '1px solid rgba(255,255,255,0.2)',
+            }}>
+              <div style={{ fontSize: 32, marginBottom: 4 }}>{lastCatch.emoji}</div>
+              <div>{lastCatch.name}</div>
+              <div style={{ fontSize: 11, marginTop: 4, color: '#aaa' }}>🪙 {lastCatch.value}</div>
+            </div>
+          )}
+
+          {/* Sell message */}
+          {sellMessage && (
+            <div style={{
+              position: 'absolute',
+              top: '35%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(0,80,0,0.9)',
+              borderRadius: 14,
+              padding: '14px 24px',
+              color: '#44ff44',
+              fontSize: 16,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: '1px solid #44ff44',
+            }}>
+              🪙 {sellMessage}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Control panel */}
       <div style={{
         position: 'absolute',
@@ -1012,5 +1132,25 @@ function ModeButton({ label, active, onClick }: { label: string; active: boolean
     >
       {label}
     </button>
+  )
+}
+
+function ParkedBoat({ position, boatLevel }: { position: THREE.Vector3; boatLevel: number }) {
+  const paths = ['/models/boat-basic.glb', '/models/boat-canvas.glb', '/models/boat-racing.glb']
+  const modelPath = paths[Math.min(boatLevel, paths.length) - 1]
+  const { scene } = useGLTF(modelPath)
+
+  const up = position.clone().normalize()
+  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+  // Lift boat up along surface normal to sit on water (same as active boat Y offset)
+  const liftedPos = position.clone().add(up.multiplyScalar(0.05))
+
+  return (
+    <primitive
+      object={scene}
+      position={[liftedPos.x, liftedPos.y, liftedPos.z]}
+      quaternion={quat}
+      scale={0.16}
+    />
   )
 }

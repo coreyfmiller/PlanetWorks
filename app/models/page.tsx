@@ -68,7 +68,6 @@ export default function ModelsPage() {
         <ModelViewer path="/models/boat-basic.glb" label="Lv.1 — Cloth Sail" description="Free starter. Weathered oak rowboat with patched sail." scale={1} />
         <ModelViewer path="/models/boat-canvas.glb" label="Lv.2 — Canvas Sail" description="40 coins. Varnished mahogany hull, dual canvas sails." scale={1} />
         <ModelViewer path="/models/boat-racing.glb" label="Lv.3 — Racing Yacht" description="120 coins. Sleek dark blue hull, tall white dacron sails." scale={1} />
-        <ModelViewer path="/models/boat-motor.glb" label="Lv.4 — Motor Engine" description="300 coins. White fiberglass, chrome outboard, no sails." scale={1} />
       </Section>
 
       <Section title="Trees (Low Poly — In Game)">
@@ -87,7 +86,13 @@ export default function ModelsPage() {
       </Section>
 
       <Section title="Characters">
-        <ModelViewer path="/models/character-fisherman.glb" label="Fisherman" description="Weathered castaway fisherman. Torn linen shirt, bare feet, sun-bleached hair." scale={1} />
+        <ModelViewer path="/models/character-cartoon.glb" label="Cartoon Character (Base)" description="Low-poly cartoony character generated from reference image. A-pose for rigging." scale={1} />
+        <ModelViewer path="/models/character-cartoon-rigged.glb" label="Cartoon Character (Rigged)" description="With skeleton/armature. Ready for animation." scale={1} />
+        <ModelViewer path="/models/character-cartoon-walking.glb" label="Cartoon Character (Walking)" description="Walk animation baked in." scale={1} />
+        <ModelViewer path="/models/character-cartoon-running.glb" label="Cartoon Character (Running)" description="Run animation baked in." scale={1} />
+        <ModelViewer path="/models/character-cartoon-idle.glb" label="Cartoon Character (Idle)" description="Idle breathing animation." scale={1} />
+        <ModelViewer path="/models/character-cartoon-chop.glb" label="Cartoon Character (Chop)" description="Charged axe chop animation for tree cutting." scale={1} />
+        <ModelViewer path="/models/character-fisherman.glb" label="Fisherman (Legacy)" description="Weathered castaway fisherman. Detailed but no animation." scale={1} />
       </Section>
     </div>
   )
