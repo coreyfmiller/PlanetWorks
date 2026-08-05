@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useMemo, Suspense } from 'react'
+import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbmSimplex, ridgedNoise, simplex3 } from '@/lib/simplex'
@@ -393,9 +393,7 @@ export function Planet({
       {shoreFoam && <ShoreFoam wideBeach={wideBeach} />}
 
       {/* Trees - instanced */}
-      <Suspense fallback={null}>
-        <InstancedTrees trees={treeData} treeScale={treeScale} />
-      </Suspense>
+      <InstancedTrees trees={treeData} treeScale={treeScale} />
 
       {/* Fish schools in the water */}
       <FishSchools />
