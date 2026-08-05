@@ -2,6 +2,7 @@
 
 import { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
 
@@ -91,140 +92,17 @@ export function PortDocks() {
 }
 
 function Dock({ position }: { position: [number, number, number] }) {
-  const lanternRef = useRef<THREE.Mesh>(null)
+  const { scene } = useGLTF('/models/port.glb')
+  const cloned = useMemo(() => scene.clone(), [scene])
 
   const up = new THREE.Vector3(...position).normalize()
   const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
 
-  // Lantern flicker
-  useFrame(({ clock }) => {
-    if (lanternRef.current) {
-      const mat = lanternRef.current.material as THREE.MeshBasicMaterial
-      mat.opacity = 0.7 + Math.sin(clock.elapsedTime * 3) * 0.2
-    }
-  })
-
   return (
     <group position={position} quaternion={q}>
-      {/* Main pier platform - much bigger */}
-      <mesh position={[0, 0.01, 0]}>
-        <boxGeometry args={[0.12, 0.008, 0.2]} />
-        <meshLambertMaterial color="#a0784c" flatShading />
-      </mesh>
-
-      {/* Pier planks */}
-      {[-0.08, -0.04, 0, 0.04, 0.08].map((z, i) => (
-        <mesh key={i} position={[0, 0.015, z]}>
-          <boxGeometry args={[0.13, 0.003, 0.025]} />
-          <meshLambertMaterial color="#c4a06a" flatShading />
-        </mesh>
-      ))}
-
-      {/* Support posts */}
-      <mesh position={[-0.05, -0.015, -0.08]}>
-        <cylinderGeometry args={[0.005, 0.007, 0.06, 4]} />
-        <meshLambertMaterial color="#5c3a20" flatShading />
-      </mesh>
-      <mesh position={[0.05, -0.015, -0.08]}>
-        <cylinderGeometry args={[0.005, 0.007, 0.06, 4]} />
-        <meshLambertMaterial color="#5c3a20" flatShading />
-      </mesh>
-      <mesh position={[-0.05, -0.015, 0.08]}>
-        <cylinderGeometry args={[0.005, 0.007, 0.06, 4]} />
-        <meshLambertMaterial color="#5c3a20" flatShading />
-      </mesh>
-      <mesh position={[0.05, -0.015, 0.08]}>
-        <cylinderGeometry args={[0.005, 0.007, 0.06, 4]} />
-        <meshLambertMaterial color="#5c3a20" flatShading />
-      </mesh>
-
-      {/* === LIGHTHOUSE === */}
-      {/* Base - stone foundation */}
-      <mesh position={[0.06, 0.03, 0.06]}>
-        <cylinderGeometry args={[0.025, 0.03, 0.06, 8]} />
-        <meshLambertMaterial color="#666666" flatShading />
-      </mesh>
-
-      {/* Tower - white with red stripe */}
-      <mesh position={[0.06, 0.1, 0.06]}>
-        <cylinderGeometry args={[0.015, 0.022, 0.12, 8]} />
-        <meshLambertMaterial color="#f5f5f0" flatShading />
-      </mesh>
-
-      {/* Red stripe */}
-      <mesh position={[0.06, 0.1, 0.06]}>
-        <cylinderGeometry args={[0.0155, 0.019, 0.03, 8]} />
-        <meshLambertMaterial color="#cc3333" flatShading />
-      </mesh>
-
-      {/* Lantern room - glass enclosure */}
-      <mesh position={[0.06, 0.17, 0.06]}>
-        <cylinderGeometry args={[0.018, 0.016, 0.025, 8]} />
-        <meshBasicMaterial color="#88ccff" transparent opacity={0.4} />
-      </mesh>
-
-      {/* Lantern room frame */}
-      <mesh position={[0.06, 0.17, 0.06]}>
-        <cylinderGeometry args={[0.019, 0.017, 0.003, 8]} />
-        <meshLambertMaterial color="#222222" flatShading />
-      </mesh>
-      <mesh position={[0.06, 0.183, 0.06]}>
-        <cylinderGeometry args={[0.017, 0.019, 0.003, 8]} />
-        <meshLambertMaterial color="#222222" flatShading />
-      </mesh>
-
-      {/* Light beacon */}
-      <mesh ref={lanternRef} position={[0.06, 0.17, 0.06]}>
-        <sphereGeometry args={[0.01, 8, 8]} />
-        <meshBasicMaterial color="#ffdd00" transparent opacity={0.9} />
-      </mesh>
-
-      {/* Light glow */}
-      <mesh position={[0.06, 0.17, 0.06]}>
-        <sphereGeometry args={[0.04, 8, 8]} />
-        <meshBasicMaterial color="#ffcc44" transparent opacity={0.25} />
-      </mesh>
-
-      {/* Tall light beam visible from far away */}
-      <mesh position={[0.06, 0.35, 0.06]}>
-        <cylinderGeometry args={[0.002, 0.015, 0.3, 6]} />
-        <meshBasicMaterial color="#ffdd44" transparent opacity={0.2} />
-      </mesh>
-
-      {/* Roof/cap */}
-      <mesh position={[0.06, 0.195, 0.06]}>
-        <coneGeometry args={[0.02, 0.02, 6]} />
-        <meshLambertMaterial color="#222222" flatShading />
-      </mesh>
-
-      {/* Door */}
-      <mesh position={[0.06, 0.015, 0.085]}>
-        <boxGeometry args={[0.01, 0.02, 0.002]} />
-        <meshLambertMaterial color="#4a2815" flatShading />
-      </mesh>
-
-      {/* === SEAGULLS circling above === */}
-      <Seagulls center={[0.06, 0.25, 0.06]} />
-
-      {/* Mooring posts */}
-      <mesh position={[-0.04, 0.022, -0.07]}>
-        <cylinderGeometry args={[0.005, 0.006, 0.02, 5]} />
-        <meshLambertMaterial color="#333333" flatShading />
-      </mesh>
-      <mesh position={[0.04, 0.022, -0.07]}>
-        <cylinderGeometry args={[0.005, 0.006, 0.02, 5]} />
-        <meshLambertMaterial color="#333333" flatShading />
-      </mesh>
-
-      {/* Small shack/hut on dock */}
-      <mesh position={[0, 0.035, 0.06]}>
-        <boxGeometry args={[0.05, 0.04, 0.04]} />
-        <meshLambertMaterial color="#deb887" flatShading />
-      </mesh>
-      <mesh position={[0, 0.06, 0.06]}>
-        <coneGeometry args={[0.04, 0.025, 4]} />
-        <meshLambertMaterial color="#8B4513" flatShading />
-      </mesh>
+      <primitive object={cloned} scale={0.12} position={[0, 0.02, 0]} />
+      {/* Seagulls circling above */}
+      <Seagulls center={[0, 0.25, 0]} />
     </group>
   )
 }

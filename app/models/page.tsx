@@ -50,6 +50,7 @@ export default function ModelsPage() {
         <ModelViewer path="/models/boat-motor.glb" label="Lv.4 — Motor Engine" scale={1} />
         <ModelViewer path="/models/airplane.glb" label="Airplane" scale={1} />
         <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" scale={1} />
+        <ModelViewer path="/models/port.glb" label="Port / Dock" scale={1} />
       </div>
     </div>
   )
