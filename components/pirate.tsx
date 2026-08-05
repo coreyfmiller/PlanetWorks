@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
 
@@ -151,57 +152,13 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught, onA
 
   return (
     <group ref={groupRef} visible={false}>
-      {/* Dark hull */}
-      <mesh position={[0, 0.01, 0]}>
-        <boxGeometry args={[0.07, 0.022, 0.18]} />
-        <meshLambertMaterial color="#1a1a1a" flatShading />
-      </mesh>
-
-      {/* Hull trim */}
-      <mesh position={[0, 0.018, 0]}>
-        <boxGeometry args={[0.055, 0.004, 0.16]} />
-        <meshLambertMaterial color="#330000" flatShading />
-      </mesh>
-
-      {/* Bow */}
-      <mesh position={[0, 0.01, 0.1]} rotation={[0.4, 0, 0]}>
-        <coneGeometry args={[0.03, 0.06, 4]} />
-        <meshLambertMaterial color="#1a1a1a" flatShading />
-      </mesh>
-
-      {/* Mast */}
-      <mesh position={[0, 0.08, 0]}>
-        <cylinderGeometry args={[0.004, 0.005, 0.14, 5]} />
-        <meshLambertMaterial color="#2a1a0a" flatShading />
-      </mesh>
-
-      {/* Black sail */}
-      <mesh position={[0.015, 0.09, 0]} rotation={[0, 0.1, 0]}>
-        <planeGeometry args={[0.06, 0.08]} />
-        <meshBasicMaterial color="#111111" side={THREE.DoubleSide} transparent opacity={0.9} />
-      </mesh>
-
-      {/* Skull emblem (white dot on sail) */}
-      <mesh position={[0.016, 0.09, 0.001]}>
-        <sphereGeometry args={[0.008, 6, 6]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-
-      {/* Crossbones (two thin white bars) */}
-      <mesh position={[0.016, 0.075, 0.001]} rotation={[0, 0, 0.5]}>
-        <boxGeometry args={[0.02, 0.003, 0.002]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[0.016, 0.075, 0.001]} rotation={[0, 0, -0.5]}>
-        <boxGeometry args={[0.02, 0.003, 0.002]} />
-        <meshBasicMaterial color="#ffffff" />
-      </mesh>
-
-      {/* Red flag */}
-      <mesh position={[0.01, 0.15, 0]}>
-        <planeGeometry args={[0.02, 0.01]} />
-        <meshBasicMaterial color="#cc0000" side={THREE.DoubleSide} />
-      </mesh>
+      <PirateModel />
     </group>
   )
+}
+
+function PirateModel() {
+  const { scene } = useGLTF('/models/pirate-ship.glb')
+  const cloned = useMemo(() => scene.clone(), [scene])
+  return <primitive object={cloned} scale={0.16} rotation={[0, Math.PI / 2, 0]} />
 }

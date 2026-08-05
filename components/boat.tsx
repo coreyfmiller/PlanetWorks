@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
 import { getNearestFishSchool, consumeFishFromSchool } from '@/components/fish-schools'
@@ -440,183 +441,18 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
 }
 
 function BoatModel({ level }: { level: number }) {
-  if (level >= 4) return <MotorBoat />
-  if (level >= 3) return <RacingSailboat />
-  if (level >= 2) return <CanvasSailboat />
-  return <BasicSailboat />
-}
-
-function BasicSailboat() {
-  return (
-    <>
-      {/* Small wooden hull */}
-      <mesh position={[0, 0.005, 0]}>
-        <boxGeometry args={[0.05, 0.016, 0.14]} />
-        <meshLambertMaterial color="#5c3317" flatShading />
-      </mesh>
-      <mesh position={[0, 0.008, 0.08]} rotation={[0.4, 0, 0]}>
-        <coneGeometry args={[0.022, 0.04, 4]} />
-        <meshLambertMaterial color="#6b3a20" flatShading />
-      </mesh>
-      <mesh position={[0, 0.016, 0]}>
-        <boxGeometry args={[0.044, 0.003, 0.11]} />
-        <meshLambertMaterial color="#deb887" flatShading />
-      </mesh>
-      {/* Single mast + cloth sail */}
-      <mesh position={[0, 0.055, 0.01]}>
-        <cylinderGeometry args={[0.002, 0.003, 0.07, 5]} />
-        <meshLambertMaterial color="#4a3520" flatShading />
-      </mesh>
-      <mesh position={[0.008, 0.06, 0.01]} rotation={[0, 0.15, 0.05]}>
-        <planeGeometry args={[0.03, 0.045]} />
-        <meshBasicMaterial color="#f0e8d8" side={THREE.DoubleSide} transparent opacity={0.85} />
-      </mesh>
-    </>
-  )
-}
-
-function CanvasSailboat() {
-  return (
-    <>
-      {/* Slightly bigger hull */}
-      <mesh position={[0, 0.006, 0]}>
-        <boxGeometry args={[0.058, 0.018, 0.17]} />
-        <meshLambertMaterial color="#4a2815" flatShading />
-      </mesh>
-      <mesh position={[0, 0.009, 0.095]} rotation={[0.4, 0, 0]}>
-        <coneGeometry args={[0.026, 0.05, 4]} />
-        <meshLambertMaterial color="#5c3317" flatShading />
-      </mesh>
-      <mesh position={[0, 0.018, 0]}>
-        <boxGeometry args={[0.05, 0.003, 0.14]} />
-        <meshLambertMaterial color="#deb887" flatShading />
-      </mesh>
-      {/* Small cabin */}
-      <mesh position={[0, 0.032, -0.03]}>
-        <boxGeometry args={[0.028, 0.018, 0.035]} />
-        <meshLambertMaterial color="#f5e6d0" flatShading />
-      </mesh>
-      {/* Main mast + bigger canvas sail */}
-      <mesh position={[0, 0.07, 0.02]}>
-        <cylinderGeometry args={[0.002, 0.003, 0.09, 5]} />
-        <meshLambertMaterial color="#4a3520" flatShading />
-      </mesh>
-      <mesh position={[0.012, 0.075, 0.02]} rotation={[0, 0.12, 0.03]}>
-        <planeGeometry args={[0.04, 0.06]} />
-        <meshBasicMaterial color="#fff8f0" side={THREE.DoubleSide} transparent opacity={0.9} />
-      </mesh>
-      {/* Second small sail (jib) */}
-      <mesh position={[0.006, 0.06, 0.06]} rotation={[0, 0.2, 0.05]}>
-        <planeGeometry args={[0.02, 0.035]} />
-        <meshBasicMaterial color="#fff8f0" side={THREE.DoubleSide} transparent opacity={0.85} />
-      </mesh>
-    </>
-  )
-}
-
-function RacingSailboat() {
-  return (
-    <>
-      {/* Sleek narrow hull */}
-      <mesh position={[0, 0.006, 0]}>
-        <boxGeometry args={[0.05, 0.016, 0.2]} />
-        <meshLambertMaterial color="#2a4060" flatShading />
-      </mesh>
-      <mesh position={[0, 0.009, 0.11]} rotation={[0.35, 0, 0]}>
-        <coneGeometry args={[0.02, 0.05, 4]} />
-        <meshLambertMaterial color="#2a4060" flatShading />
-      </mesh>
-      <mesh position={[0, 0.016, 0]}>
-        <boxGeometry args={[0.044, 0.003, 0.17]} />
-        <meshLambertMaterial color="#c0c8d0" flatShading />
-      </mesh>
-      {/* Racing stripe */}
-      <mesh position={[0, 0.015, 0]}>
-        <boxGeometry args={[0.052, 0.004, 0.005]} />
-        <meshLambertMaterial color="#cc2222" flatShading />
-      </mesh>
-      {/* Tall main mast */}
-      <mesh position={[0, 0.085, 0.02]}>
-        <cylinderGeometry args={[0.002, 0.003, 0.13, 5]} />
-        <meshLambertMaterial color="#333333" flatShading />
-      </mesh>
-      {/* Large main sail */}
-      <mesh position={[0.015, 0.09, 0.02]} rotation={[0, 0.1, 0.03]}>
-        <planeGeometry args={[0.05, 0.09]} />
-        <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} transparent opacity={0.92} />
-      </mesh>
-      {/* Jib sail */}
-      <mesh position={[0.008, 0.07, 0.08]} rotation={[0, 0.15, 0.05]}>
-        <planeGeometry args={[0.03, 0.055]} />
-        <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} transparent opacity={0.88} />
-      </mesh>
-    </>
-  )
-}
-
-function MotorBoat() {
-  return (
-    <>
-      {/* Wide modern hull */}
-      <mesh position={[0, 0.008, 0]}>
-        <boxGeometry args={[0.07, 0.02, 0.2]} />
-        <meshLambertMaterial color="#e8e8e8" flatShading />
-      </mesh>
-      <mesh position={[0, 0.01, 0.11]} rotation={[0.3, 0, 0]}>
-        <coneGeometry args={[0.03, 0.06, 4]} />
-        <meshLambertMaterial color="#e8e8e8" flatShading />
-      </mesh>
-      {/* Blue hull bottom */}
-      <mesh position={[0, 0.0, 0]}>
-        <boxGeometry args={[0.068, 0.01, 0.19]} />
-        <meshLambertMaterial color="#1a4488" flatShading />
-      </mesh>
-      {/* Deck */}
-      <mesh position={[0, 0.02, 0]}>
-        <boxGeometry args={[0.06, 0.003, 0.16]} />
-        <meshLambertMaterial color="#deb887" flatShading />
-      </mesh>
-      {/* Large cabin at back */}
-      <mesh position={[0, 0.04, -0.04]}>
-        <boxGeometry args={[0.05, 0.03, 0.07]} />
-        <meshLambertMaterial color="#f5f5f5" flatShading />
-      </mesh>
-      {/* Cabin roof */}
-      <mesh position={[0, 0.058, -0.04]}>
-        <boxGeometry args={[0.054, 0.004, 0.074]} />
-        <meshLambertMaterial color="#333333" flatShading />
-      </mesh>
-      {/* Windshield */}
-      <mesh position={[0, 0.042, 0.005]}>
-        <boxGeometry args={[0.04, 0.02, 0.002]} />
-        <meshBasicMaterial color="#88ccff" transparent opacity={0.6} />
-      </mesh>
-      {/* Antenna/tower */}
-      <mesh position={[0, 0.08, -0.05]}>
-        <cylinderGeometry args={[0.001, 0.002, 0.04, 4]} />
-        <meshLambertMaterial color="#333333" flatShading />
-      </mesh>
-      {/* Motor housing at stern */}
-      <mesh position={[0, 0.015, -0.1]}>
-        <boxGeometry args={[0.03, 0.025, 0.025]} />
-        <meshLambertMaterial color="#222222" flatShading />
-      </mesh>
-      {/* Propeller shaft */}
-      <mesh position={[0, 0.0, -0.11]} rotation={[0.3, 0, 0]}>
-        <cylinderGeometry args={[0.003, 0.003, 0.025, 4]} />
-        <meshLambertMaterial color="#444444" flatShading />
-      </mesh>
-      {/* Red/green nav lights */}
-      <mesh position={[0.035, 0.02, 0.06]}>
-        <sphereGeometry args={[0.003, 4, 4]} />
-        <meshBasicMaterial color="#00cc00" />
-      </mesh>
-      <mesh position={[-0.035, 0.02, 0.06]}>
-        <sphereGeometry args={[0.003, 4, 4]} />
-        <meshBasicMaterial color="#cc0000" />
-      </mesh>
-    </>
-  )
+  const paths = [
+    '/models/boat-basic.glb',
+    '/models/boat-canvas.glb',
+    '/models/boat-racing.glb',
+    '/models/boat-motor.glb',
+  ]
+  const offsets = [0.025, 0.03, 0.03, 0.035]
+  const path = paths[Math.min(level, paths.length) - 1]
+  const yOffset = offsets[Math.min(level, offsets.length) - 1]
+  const { scene } = useGLTF(path)
+  const cloned = useMemo(() => scene.clone(), [scene])
+  return <primitive object={cloned} scale={0.16} rotation={[0, Math.PI / 2, 0]} position={[0, yOffset, 0]} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
