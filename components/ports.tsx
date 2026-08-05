@@ -100,7 +100,7 @@ function Dock({ position }: { position: [number, number, number] }) {
 
   return (
     <group position={position} quaternion={q}>
-      <primitive object={cloned} scale={0.36} position={[0, 0.06, 0]} />
+      <primitive object={cloned} scale={0.36} position={[0, 0.12, 0]} />
       {/* Seagulls circling above */}
       <Seagulls center={[0, 0.25, 0]} />
     </group>
