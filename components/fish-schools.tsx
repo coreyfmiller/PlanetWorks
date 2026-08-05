@@ -39,7 +39,7 @@ export function FishSchools() {
           const dx = existing.center[0] - center[0]
           const dy = existing.center[1] - center[1]
           const dz = existing.center[2] - center[2]
-          if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.35) {
+          if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 1.0) {
             tooClose = true
             break
           }
@@ -218,7 +218,7 @@ function getSchoolCenters(): [number, number, number][] {
         const dx = existing[0] - pos[0]
         const dy = existing[1] - pos[1]
         const dz = existing[2] - pos[2]
-        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.35) {
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 1.0) {
           tooClose = true
           break
         }
