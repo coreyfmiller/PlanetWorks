@@ -33,6 +33,9 @@ export default function Home() {
     if (state === 'nofish') {
       setTimeout(() => setFishingState('idle'), 2000)
     }
+    if (state === 'holdfull') {
+      setTimeout(() => setFishingState('idle'), 2000)
+    }
   }, [])
   const [catches, setCatches] = useState<FishCatch[]>([])
   const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
@@ -82,12 +85,14 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) } catch {} }, [caughtSpecies])
 
   const handleCatch = useCallback((fish: FishCatch) => {
+    const maxCargo = BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo
+    if (catches.length >= maxCargo) return // hold full, shouldn't get here but safety
     setCatches(prev => [...prev, fish])
     setCaughtSpecies(prev => prev.includes(fish.name) ? prev : [...prev, fish.name])
     setLastCatch(fish)
     playCatch()
     setTimeout(() => setLastCatch(null), 2500)
-  }, [])
+  }, [boatSpeed, catches.length])
 
   const handlePositionUpdate = useCallback((pos: THREE.Vector3, forward?: THREE.Vector3) => {
     const port = getNearestPort(pos)
@@ -234,7 +239,7 @@ export default function Home() {
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
           <>
-          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} />
+          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo} />
           <PirateShip
             boatPosition={boatPos}
             boatMaxSpeed={BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].maxSpeed}
@@ -297,6 +302,7 @@ export default function Home() {
               {fishingState === 'caught' && '✅ Got one!'}
               {fishingState === 'missed' && '❌ Missed!'}
               {fishingState === 'nofish' && '🚫 No fish nearby! Follow the 🐟 compass.'}
+              {fishingState === 'holdfull' && '📦 Hold full! Sell at port.'}
             </div>
           )}
 
@@ -352,7 +358,7 @@ export default function Home() {
             alignItems: 'center',
           }}>
             <span>🪙 {coins}</span>
-            {catches.length > 0 && <span>🐟 {catches.length}</span>}
+            {catches.length > 0 && <span>🐟 {catches.length}/{BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo}</span>}
             <span
               onClick={() => setShowJournal(!showJournal)}
               style={{ cursor: 'pointer', fontSize: 15 }}

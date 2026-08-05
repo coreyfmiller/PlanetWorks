@@ -67,13 +67,14 @@ export interface BoatSpeedDef {
   name: string
   cost: number
   maxSpeed: number
+  cargo: number
 }
 
 export const BOAT_SPEEDS: BoatSpeedDef[] = [
-  { level: 1, name: 'Cloth Sail', cost: 0, maxSpeed: 0.6 },
-  { level: 2, name: 'Canvas Sail', cost: 40, maxSpeed: 0.85 },
-  { level: 3, name: 'Racing Sail', cost: 120, maxSpeed: 1.1 },
-  { level: 4, name: 'Motor Engine', cost: 300, maxSpeed: 1.5 },
+  { level: 1, name: 'Cloth Sail', cost: 0, maxSpeed: 0.6, cargo: 5 },
+  { level: 2, name: 'Canvas Sail', cost: 40, maxSpeed: 0.85, cargo: 8 },
+  { level: 3, name: 'Racing Sail', cost: 120, maxSpeed: 1.1, cargo: 12 },
+  { level: 4, name: 'Motor Engine', cost: 300, maxSpeed: 1.5, cargo: 20 },
 ]
 
 export function rollFish(rodLevel: number): FishCatch {
@@ -104,12 +105,13 @@ interface BoatProps {
   wake?: boolean
   rodLevel?: number
   speedLevel?: number
+  cargoFull?: boolean
   onCatch?: (fish: FishCatch) => void
-  onFishingState?: (state: FishingState) => void
+  onFishingState?: (state: FishingState | 'holdfull') => void
   onPositionUpdate?: (pos: THREE.Vector3, forward?: THREE.Vector3) => void
 }
 
-export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
+export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, cargoFull = false, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
   const groupRef = useRef<THREE.Group>(null)
   const bobberRef = useRef<THREE.Group>(null)
   const wakeRef = useRef<THREE.Points>(null)
@@ -164,6 +166,12 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFis
       s.justPressed = false
 
       if (s.fishing === 'idle') {
+        // Check cargo first
+        if (cargoFull) {
+          onFishingState?.('holdfull')
+          s.justPressed = false
+          return
+        }
         // Check if near a fish school before allowing cast
         const pos = new THREE.Vector3(0, 1, 0).applyQuaternion(s.quat).normalize().multiplyScalar(s.altitude)
         const nearestSchool = getNearestFishSchool(pos)
