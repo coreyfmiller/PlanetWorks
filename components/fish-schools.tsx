@@ -17,7 +17,7 @@ export function FishSchools() {
   // Generate school positions evenly distributed in deep water
   const schools = useMemo(() => {
     const result: { center: [number, number, number]; fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] }[] = []
-    const count = 2000
+    const count = 5000
 
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
@@ -28,45 +28,40 @@ export function FishSchools() {
 
       const { influence } = islandInfluence(nx, ny, nz, true)
 
-      // Deep water only
-      if (influence < -0.2) {
-        // Use every 3rd valid spot for even spacing
-        if (result.length * 3 > i - (count - result.length * 3)) {
-          // Skip to space them out
-        } else {
-          const r = 2.99
-          const center: [number, number, number] = [nx * r, ny * r, nz * r]
+      // Any water (influence below land threshold)
+      if (influence < 0.05) {
+        const r = 2.99
+        const center: [number, number, number] = [nx * r, ny * r, nz * r]
 
-          // Check minimum distance from other schools
-          let tooClose = false
-          for (const existing of result) {
-            const dx = existing.center[0] - center[0]
-            const dy = existing.center[1] - center[1]
-            const dz = existing.center[2] - center[2]
-            if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.5) {
-              tooClose = true
-              break
-            }
+        // Check minimum distance from other schools
+        let tooClose = false
+        for (const existing of result) {
+          const dx = existing.center[0] - center[0]
+          const dy = existing.center[1] - center[1]
+          const dz = existing.center[2] - center[2]
+          if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.35) {
+            tooClose = true
+            break
           }
-          if (tooClose) continue
-
-          const fishCount = 5 + Math.floor(Math.random() * 4)
-          const fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] = []
-          for (let f = 0; f < fishCount; f++) {
-            fish.push({
-              offset: [
-                (Math.random() - 0.5) * 0.06,
-                (Math.random() - 0.5) * 0.01,
-                (Math.random() - 0.5) * 0.06,
-              ],
-              speed: 0.8 + Math.random() * 0.6,
-              phase: Math.random() * Math.PI * 2,
-              size: 0.005 + Math.random() * 0.007,
-            })
-          }
-
-          result.push({ center, fish })
         }
+        if (tooClose) continue
+
+        const fishCount = 5 + Math.floor(Math.random() * 4)
+        const fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] = []
+        for (let f = 0; f < fishCount; f++) {
+          fish.push({
+            offset: [
+              (Math.random() - 0.5) * 0.06,
+              (Math.random() - 0.5) * 0.01,
+              (Math.random() - 0.5) * 0.06,
+            ],
+            speed: 0.8 + Math.random() * 0.6,
+            phase: Math.random() * Math.PI * 2,
+            size: 0.005 + Math.random() * 0.007,
+          })
+        }
+
+        result.push({ center, fish })
       }
 
       if (result.length >= 30) break
@@ -203,7 +198,7 @@ function getSchoolCenters(): [number, number, number][] {
   if (_schoolCenters) return _schoolCenters
 
   const results: [number, number, number][] = []
-  const count = 2000
+  const count = 5000
 
   for (let i = 0; i < count; i++) {
     const phi = Math.acos(1 - 2 * (i + 0.5) / count)
@@ -214,17 +209,16 @@ function getSchoolCenters(): [number, number, number][] {
 
     const { influence } = islandInfluence(nx, ny, nz, true)
 
-    if (influence < -0.2) {
+    if (influence < 0.05) {
       const r = 2.99
       const pos: [number, number, number] = [nx * r, ny * r, nz * r]
 
-      // Minimum distance from other schools
       let tooClose = false
       for (const existing of results) {
         const dx = existing[0] - pos[0]
         const dy = existing[1] - pos[1]
         const dz = existing[2] - pos[2]
-        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.5) {
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.35) {
           tooClose = true
           break
         }
