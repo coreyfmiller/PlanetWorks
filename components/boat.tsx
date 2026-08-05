@@ -447,7 +447,7 @@ function BoatModel({ level }: { level: number }) {
     '/models/boat-racing.glb',
     '/models/boat-motor.glb',
   ]
-  const offsets = [0.07, 0.07, 0.07, 0.04]
+  const offsets = [0.07, 0.07, 0.07, 0.02]
   const path = paths[Math.min(level, paths.length) - 1]
   const yOffset = offsets[Math.min(level, offsets.length) - 1]
   const { scene } = useGLTF(path)
