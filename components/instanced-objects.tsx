@@ -71,26 +71,26 @@ function TreeGLBInstanced({ path, data, treeScale }: { path: string; data: TreeD
   const meshRef = useRef<THREE.InstancedMesh>(null)
   const count = data.length
 
-  // Extract geometry and material from the GLB
+  // Extract geometry and material from the GLB (use first mesh found)
   const { geometry, material } = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null
-    let mat: THREE.Material | THREE.Material[] = new THREE.MeshLambertMaterial({ color: '#44aa44' })
+    let geo: THREE.BufferGeometry = new THREE.ConeGeometry(0.5, 1.5, 5)
+    let mat: THREE.Material = new THREE.MeshLambertMaterial({ color: '#44aa44' })
 
     scene.traverse((child) => {
-      if (child instanceof THREE.Mesh && !geo) {
-        geo = child.geometry.clone()
-        mat = child.material
+      if (child instanceof THREE.Mesh && geo instanceof THREE.ConeGeometry) {
+        geo = child.geometry
+        mat = Array.isArray(child.material) ? child.material[0] : child.material
       }
     })
 
-    return { geometry: geo || new THREE.BoxGeometry(1, 1, 1), material: mat }
+    return { geometry: geo, material: mat }
   }, [scene])
 
   useEffect(() => {
     if (!meshRef.current) return
 
     for (let i = 0; i < count; i++) {
-      const s = data[i].scale * treeScale * 0.03 // scale down GLB to match planet
+      const s = data[i].scale * treeScale * 0.15 // scale GLB to match planet
       const mat = buildMatrix(data[i].pos, s, data[i].rotY)
       meshRef.current.setMatrixAt(i, mat)
     }
