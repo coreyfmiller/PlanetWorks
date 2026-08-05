@@ -9,7 +9,7 @@ import { FreeOrbit } from '@/components/free-orbit'
 
 export default function Home() {
   // Core
-  const [waves, setWaves] = useState(false)
+  const [waves, setWaves] = useState(true)
   const [atmosphere, setAtmosphere] = useState(true)
   const [flyMode, setFlyMode] = useState(false)
 
