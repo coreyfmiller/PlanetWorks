@@ -55,7 +55,7 @@ export function FishSchools() {
         }
       }
 
-      if (result.length >= 15) break
+      if (result.length >= 30) break
     }
 
     return result
@@ -208,7 +208,7 @@ function getSchoolCenters(): [number, number, number][] {
       }
     }
 
-    if (results.length >= 15) break
+    if (results.length >= 30) break
   }
 
   _schoolCenters = results
