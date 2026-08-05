@@ -138,23 +138,67 @@ function Dock({ position }: { position: [number, number, number] }) {
         <meshLambertMaterial color="#5c3a20" flatShading />
       </mesh>
 
-      {/* TALL BEACON POLE - visible from far away */}
-      <mesh position={[0, 0.12, 0]}>
-        <cylinderGeometry args={[0.005, 0.008, 0.22, 5]} />
-        <meshLambertMaterial color="#4a3520" flatShading />
+      {/* === LIGHTHOUSE === */}
+      {/* Base - stone foundation */}
+      <mesh position={[0.06, 0.03, 0.06]}>
+        <cylinderGeometry args={[0.025, 0.03, 0.06, 8]} />
+        <meshLambertMaterial color="#666666" flatShading />
       </mesh>
 
-      {/* Beacon light - big bright sphere */}
-      <mesh ref={lanternRef} position={[0, 0.24, 0]}>
-        <sphereGeometry args={[0.02, 8, 8]} />
-        <meshBasicMaterial color="#ffaa00" transparent opacity={0.9} />
+      {/* Tower - white with red stripe */}
+      <mesh position={[0.06, 0.1, 0.06]}>
+        <cylinderGeometry args={[0.015, 0.022, 0.12, 8]} />
+        <meshLambertMaterial color="#f5f5f0" flatShading />
       </mesh>
 
-      {/* Beacon glow ring (outer glow) */}
-      <mesh position={[0, 0.24, 0]}>
-        <sphereGeometry args={[0.035, 8, 8]} />
-        <meshBasicMaterial color="#ffcc44" transparent opacity={0.3} />
+      {/* Red stripe */}
+      <mesh position={[0.06, 0.1, 0.06]}>
+        <cylinderGeometry args={[0.0155, 0.019, 0.03, 8]} />
+        <meshLambertMaterial color="#cc3333" flatShading />
       </mesh>
+
+      {/* Lantern room - glass enclosure */}
+      <mesh position={[0.06, 0.17, 0.06]}>
+        <cylinderGeometry args={[0.018, 0.016, 0.025, 8]} />
+        <meshBasicMaterial color="#88ccff" transparent opacity={0.4} />
+      </mesh>
+
+      {/* Lantern room frame */}
+      <mesh position={[0.06, 0.17, 0.06]}>
+        <cylinderGeometry args={[0.019, 0.017, 0.003, 8]} />
+        <meshLambertMaterial color="#222222" flatShading />
+      </mesh>
+      <mesh position={[0.06, 0.183, 0.06]}>
+        <cylinderGeometry args={[0.017, 0.019, 0.003, 8]} />
+        <meshLambertMaterial color="#222222" flatShading />
+      </mesh>
+
+      {/* Light beacon */}
+      <mesh ref={lanternRef} position={[0.06, 0.17, 0.06]}>
+        <sphereGeometry args={[0.01, 8, 8]} />
+        <meshBasicMaterial color="#ffdd00" transparent opacity={0.9} />
+      </mesh>
+
+      {/* Light glow */}
+      <mesh position={[0.06, 0.17, 0.06]}>
+        <sphereGeometry args={[0.025, 8, 8]} />
+        <meshBasicMaterial color="#ffcc44" transparent opacity={0.25} />
+      </mesh>
+
+      {/* Roof/cap */}
+      <mesh position={[0.06, 0.195, 0.06]}>
+        <coneGeometry args={[0.02, 0.02, 6]} />
+        <meshLambertMaterial color="#222222" flatShading />
+      </mesh>
+
+      {/* Door */}
+      <mesh position={[0.06, 0.015, 0.085]}>
+        <boxGeometry args={[0.01, 0.02, 0.002]} />
+        <meshLambertMaterial color="#4a2815" flatShading />
+      </mesh>
+
+      {/* === SEAGULLS circling above === */}
+      <Seagulls center={[0.06, 0.25, 0.06]} />
 
       {/* Mooring posts */}
       <mesh position={[-0.04, 0.022, -0.07]}>
@@ -175,6 +219,55 @@ function Dock({ position }: { position: [number, number, number] }) {
         <coneGeometry args={[0.04, 0.025, 4]} />
         <meshLambertMaterial color="#8B4513" flatShading />
       </mesh>
+    </group>
+  )
+}
+
+// Seagulls circling above the port
+function Seagulls({ center }: { center: [number, number, number] }) {
+  const groupRef = useRef<THREE.Group>(null)
+  const birds = useMemo(() => {
+    return Array.from({ length: 5 }, (_, i) => ({
+      offset: (Math.PI * 2 * i) / 5,
+      radius: 0.04 + Math.random() * 0.03,
+      height: Math.random() * 0.03,
+      speed: 0.6 + Math.random() * 0.4,
+    }))
+  }, [])
+
+  useFrame(({ clock }) => {
+    if (!groupRef.current) return
+    const t = clock.elapsedTime
+    const children = groupRef.current.children
+    for (let i = 0; i < children.length; i++) {
+      const bird = children[i]
+      const data = birds[i]
+      const angle = t * data.speed + data.offset
+      bird.position.set(
+        center[0] + Math.cos(angle) * data.radius,
+        center[1] + data.height + Math.sin(t * 2 + data.offset) * 0.005,
+        center[2] + Math.sin(angle) * data.radius
+      )
+      bird.rotation.y = -angle + Math.PI / 2
+    }
+  })
+
+  return (
+    <group ref={groupRef}>
+      {birds.map((_, i) => (
+        <group key={i} scale={0.006}>
+          {/* Left wing */}
+          <mesh position={[-0.6, 0, 0]} rotation={[0, 0, 0.3]}>
+            <planeGeometry args={[1.2, 0.3]} />
+            <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} />
+          </mesh>
+          {/* Right wing */}
+          <mesh position={[0.6, 0, 0]} rotation={[0, 0, -0.3]}>
+            <planeGeometry args={[1.2, 0.3]} />
+            <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      ))}
     </group>
   )
 }
