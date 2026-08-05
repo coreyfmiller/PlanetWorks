@@ -202,10 +202,14 @@ export function Planet({
           colors[i * 3] = 0.15 + v * 0.12; colors[i * 3 + 1] = 0.5 + v * 0.28; colors[i * 3 + 2] = 0.08 + v * 0.07
         }
       } else {
-        const shallowFactor = Math.max(0, (influence + 0.1)) * 4
-        colors[i * 3] = 0.04 + shallowFactor * 0.2
-        colors[i * 3 + 1] = 0.15 + shallowFactor * 0.5
-        colors[i * 3 + 2] = 0.35 + shallowFactor * 0.35
+        // Ocean depth gradient: turquoise shallows → dark navy deep
+        const shallowFactor = Math.max(0, (influence + 0.1)) * 3
+        const depthFactor = 1 - shallowFactor
+        // Deep: dark navy (0.02, 0.06, 0.2)
+        // Shallow: turquoise (0.1, 0.5, 0.55)
+        colors[i * 3] = 0.02 + shallowFactor * 0.12
+        colors[i * 3 + 1] = 0.06 + shallowFactor * 0.45
+        colors[i * 3 + 2] = 0.2 + shallowFactor * 0.4
       }
     }
 

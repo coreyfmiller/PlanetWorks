@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
-import { Boat, FishCatch, RODS } from '@/components/boat'
+import { Boat, FishCatch, RODS, BOAT_SPEEDS } from '@/components/boat'
+import { PirateShip } from '@/components/pirate'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
-import { getNearestPort } from '@/components/ports'
+import { getNearestPort, getPorts } from '@/components/ports'
+import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
 import * as THREE from 'three'
 
 type Mode = 'globe' | 'fly' | 'boat'
@@ -21,6 +23,12 @@ export default function Home() {
 
   // Fishing
   const [fishingState, setFishingState] = useState<string>('idle')
+
+  const handleFishingState = useCallback((state: string) => {
+    setFishingState(state)
+    if (state === 'cast') playSplash()
+    if (state === 'missed') playMiss()
+  }, [])
   const [catches, setCatches] = useState<FishCatch[]>([])
   const [lastCatch, setLastCatch] = useState<FishCatch | null>(null)
 
@@ -31,31 +39,74 @@ export default function Home() {
   })
   const [nearPort, setNearPort] = useState(false)
   const [sellMessage, setSellMessage] = useState<string | null>(null)
+  const [portDirection, setPortDirection] = useState<{ angle: number; distance: number } | null>(null)
   const [rodLevel, setRodLevel] = useState(() => {
     if (typeof window === 'undefined') return 1
     return Number(localStorage.getItem('pw_rodLevel')) || 1
+  })
+  const [boatSpeed, setBoatSpeed] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Number(localStorage.getItem('pw_boatSpeed')) || 1
   })
   const [showShop, setShowShop] = useState(false)
   const [caughtSpecies, setCaughtSpecies] = useState<string[]>(() => {
     if (typeof window === 'undefined') return []
     try { return JSON.parse(localStorage.getItem('pw_caughtSpecies') || '[]') } catch { return [] }
   })
+  const [boatPos, setBoatPos] = useState<THREE.Vector3 | null>(null)
+  const [pirateWarning, setPirateWarning] = useState(false)
 
   // Save to localStorage on change
-  useEffect(() => { localStorage.setItem('pw_coins', String(coins)) }, [coins])
-  useEffect(() => { localStorage.setItem('pw_rodLevel', String(rodLevel)) }, [rodLevel])
-  useEffect(() => { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) }, [caughtSpecies])
+  useEffect(() => { try { localStorage.setItem('pw_coins', String(coins)) } catch {} }, [coins])
+  useEffect(() => { try { localStorage.setItem('pw_rodLevel', String(rodLevel)) } catch {} }, [rodLevel])
+  useEffect(() => { try { localStorage.setItem('pw_boatSpeed', String(boatSpeed)) } catch {} }, [boatSpeed])
+  useEffect(() => { try { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) } catch {} }, [caughtSpecies])
 
   const handleCatch = useCallback((fish: FishCatch) => {
     setCatches(prev => [...prev, fish])
     setCaughtSpecies(prev => prev.includes(fish.name) ? prev : [...prev, fish.name])
     setLastCatch(fish)
+    playCatch()
     setTimeout(() => setLastCatch(null), 2500)
   }, [])
 
-  const handlePositionUpdate = useCallback((pos: THREE.Vector3) => {
+  const handlePositionUpdate = useCallback((pos: THREE.Vector3, forward?: THREE.Vector3) => {
     const port = getNearestPort(pos)
     setNearPort(!!port)
+    setBoatPos(pos.clone())
+
+    // Find closest port for compass
+    const closest = getNearestPort(pos, 999)
+    if (closest && forward) {
+      const portVec = new THREE.Vector3(...closest.position)
+      const dist = pos.distanceTo(portVec)
+
+      const localUp = pos.clone().normalize()
+      const toPort = portVec.clone().sub(pos).normalize()
+
+      // Project both onto tangent plane (remove the "up" component)
+      const toPortFlat = toPort.clone().sub(localUp.clone().multiplyScalar(toPort.dot(localUp)))
+      const forwardFlat = forward.clone().sub(localUp.clone().multiplyScalar(forward.dot(localUp)))
+
+      if (toPortFlat.length() > 0.001 && forwardFlat.length() > 0.001) {
+        toPortFlat.normalize()
+        forwardFlat.normalize()
+
+        // Signed angle from forward to toPort around localUp axis
+        const cross = new THREE.Vector3().crossVectors(forwardFlat, toPortFlat)
+        const sin = cross.dot(localUp)
+        const cos = forwardFlat.dot(toPortFlat)
+        const angle = Math.atan2(sin, cos) + Math.PI
+
+        setPortDirection({ angle, distance: dist })
+      }
+    }
+  }, [])
+
+  const handlePirateCaught = useCallback(() => {
+    setCatches([])
+    setPirateWarning(true)
+    setTimeout(() => setPirateWarning(false), 3000)
   }, [])
 
   const handleSell = useCallback(() => {
@@ -67,6 +118,7 @@ export default function Home() {
     setCoins(prev => prev + total)
     setSellMessage(`Sold ${catches.length} fish for ${total} coins!`)
     setCatches([])
+    playCoinJingle()
     setTimeout(() => setSellMessage(null), 2500)
   }, [catches])
 
@@ -131,7 +183,16 @@ export default function Home() {
         {mode === 'fly' ? (
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
-          <Boat onCatch={handleCatch} onFishingState={setFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} />
+          <>
+          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} />
+          <PirateShip
+            boatPosition={boatPos}
+            boatMaxSpeed={BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].maxSpeed}
+            isAtPort={nearPort}
+            onCaught={handlePirateCaught}
+          />
+          <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
+          </>
         ) : (
           <FreeOrbit />
         )}
@@ -239,6 +300,62 @@ export default function Home() {
             <span>🪙 {coins}</span>
             {catches.length > 0 && <span>🐟 {catches.length}</span>}
           </div>
+
+          {/* Port compass */}
+          {!nearPort && portDirection && (
+            <div style={{
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: 10,
+              padding: '6px 10px',
+              color: 'white',
+              fontSize: 12,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{
+                display: 'inline-block',
+                transform: `rotate(${-portDirection.angle}rad)`,
+                fontSize: 16,
+              }}>⬆</span>
+              <span style={{ opacity: 0.7 }}>Port</span>
+            </div>
+          )}
+
+          {/* Port compass */}
+          {!nearPort && portDirection && (
+            <div style={{
+              position: 'absolute',
+              top: 60,
+              right: 20,
+              background: 'rgba(0,0,0,0.6)',
+              borderRadius: 10,
+              padding: '8px 12px',
+              color: 'white',
+              fontSize: 12,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: 20,
+                height: 20,
+                lineHeight: '20px',
+                textAlign: 'center',
+                transform: `rotate(${portDirection.angle}rad)`,
+                fontSize: 16,
+              }}>⬆</span>
+              <span style={{ opacity: 0.7 }}>Port</span>
+            </div>
+          )}
 
           {/* Port sell prompt */}
           {nearPort && catches.length > 0 && !showShop && (
@@ -386,6 +503,79 @@ export default function Home() {
                   </div>
                 )
               })}
+
+              {/* Boat Speed */}
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 14, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>⛵ Boat Speed</div>
+              {BOAT_SPEEDS.map(spd => {
+                const owned = boatSpeed >= spd.level
+                const canAfford = coins >= spd.cost
+                const isNext = spd.level === boatSpeed + 1
+                return (
+                  <div key={spd.level} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 10px',
+                    marginBottom: 6,
+                    borderRadius: 8,
+                    background: owned ? 'rgba(0,100,0,0.3)' : isNext ? 'rgba(100,80,0,0.3)' : 'rgba(255,255,255,0.05)',
+                    border: isNext ? '1px solid rgba(255,200,0,0.4)' : '1px solid transparent',
+                    opacity: owned ? 0.6 : 1,
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: isNext ? 'bold' : 'normal' }}>{spd.name}</div>
+                    </div>
+                    {owned ? (
+                      <span style={{ fontSize: 11, color: '#44ff44' }}>✓ Owned</span>
+                    ) : isNext ? (
+                      <button
+                        onClick={() => {
+                          if (canAfford) {
+                            setCoins(prev => prev - spd.cost)
+                            setBoatSpeed(spd.level)
+                          }
+                        }}
+                        style={{
+                          background: canAfford ? '#cc8800' : '#555',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '4px 10px',
+                          color: 'white',
+                          fontSize: 12,
+                          cursor: canAfford ? 'pointer' : 'not-allowed',
+                          opacity: canAfford ? 1 : 0.5,
+                        }}
+                      >
+                        🪙 {spd.cost}
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: 11, opacity: 0.4 }}>🔒 {spd.cost}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Pirate warning */}
+          {pirateWarning && (
+            <div style={{
+              position: 'absolute',
+              top: '35%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(80,0,0,0.9)',
+              borderRadius: 14,
+              padding: '14px 24px',
+              color: '#ff4444',
+              fontSize: 16,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: '2px solid #ff4444',
+            }}>
+              <div style={{ fontSize: 28, marginBottom: 4 }}>☠️</div>
+              <div>Pirates stole your fish!</div>
             </div>
           )}
 
@@ -484,6 +674,13 @@ export default function Home() {
 function SceneReset() {
   const { scene } = useThree()
   scene.quaternion.identity()
+  return null
+}
+
+function PortCompassUpdater({ onAngleUpdate }: { onAngleUpdate: (angle: number) => void }) {
+  useFrame(() => {
+    // Don't need this anymore, angle computed in handlePositionUpdate
+  })
   return null
 }
 
