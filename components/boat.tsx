@@ -447,11 +447,6 @@ function BasicSailboat() {
         <planeGeometry args={[0.03, 0.045]} />
         <meshBasicMaterial color="#f0e8d8" side={THREE.DoubleSide} transparent opacity={0.85} />
       </mesh>
-      {/* Fishing rod */}
-      <mesh position={[0.022, 0.025, 0.03]} rotation={[0.5, 0.3, 0.4]}>
-        <cylinderGeometry args={[0.001, 0.0015, 0.08, 4]} />
-        <meshLambertMaterial color="#2a1a0a" flatShading />
-      </mesh>
     </>
   )
 }
@@ -490,11 +485,6 @@ function CanvasSailboat() {
       <mesh position={[0.006, 0.06, 0.06]} rotation={[0, 0.2, 0.05]}>
         <planeGeometry args={[0.02, 0.035]} />
         <meshBasicMaterial color="#fff8f0" side={THREE.DoubleSide} transparent opacity={0.85} />
-      </mesh>
-      {/* Fishing rod */}
-      <mesh position={[0.026, 0.03, 0.04]} rotation={[0.5, 0.3, 0.4]}>
-        <cylinderGeometry args={[0.001, 0.0015, 0.09, 4]} />
-        <meshLambertMaterial color="#2a1a0a" flatShading />
       </mesh>
     </>
   )
@@ -535,11 +525,6 @@ function RacingSailboat() {
       <mesh position={[0.008, 0.07, 0.08]} rotation={[0, 0.15, 0.05]}>
         <planeGeometry args={[0.03, 0.055]} />
         <meshBasicMaterial color="#ffffff" side={THREE.DoubleSide} transparent opacity={0.88} />
-      </mesh>
-      {/* Fishing rod */}
-      <mesh position={[0.024, 0.025, 0.05]} rotation={[0.5, 0.3, 0.4]}>
-        <cylinderGeometry args={[0.001, 0.0015, 0.09, 4]} />
-        <meshLambertMaterial color="#2a1a0a" flatShading />
       </mesh>
     </>
   )
@@ -605,16 +590,6 @@ function MotorBoat() {
       <mesh position={[-0.035, 0.02, 0.06]}>
         <sphereGeometry args={[0.003, 4, 4]} />
         <meshBasicMaterial color="#cc0000" />
-      </mesh>
-      {/* Fishing rod */}
-      <mesh position={[0.03, 0.035, 0.04]} rotation={[0.5, 0.3, 0.4]}>
-        <cylinderGeometry args={[0.001, 0.0015, 0.1, 4]} />
-        <meshLambertMaterial color="#2a1a0a" flatShading />
-      </mesh>
-      {/* Rod holder */}
-      <mesh position={[0.03, 0.025, 0.04]}>
-        <cylinderGeometry args={[0.003, 0.003, 0.012, 6]} />
-        <meshLambertMaterial color="#666666" flatShading />
       </mesh>
     </>
   )

@@ -54,6 +54,10 @@ export default function Home() {
     if (typeof window === 'undefined') return 1
     return Number(localStorage.getItem('pw_boatSpeed')) || 1
   })
+  const [boatOwned, setBoatOwned] = useState(() => {
+    if (typeof window === 'undefined') return 1
+    return Number(localStorage.getItem('pw_boatOwned')) || 1
+  })
   const [showShop, setShowShop] = useState(false)
   const [caughtSpecies, setCaughtSpecies] = useState<string[]>(() => {
     if (typeof window === 'undefined') return []
@@ -74,6 +78,7 @@ export default function Home() {
   useEffect(() => { try { localStorage.setItem('pw_coins', String(coins)) } catch {} }, [coins])
   useEffect(() => { try { localStorage.setItem('pw_rodLevel', String(rodLevel)) } catch {} }, [rodLevel])
   useEffect(() => { try { localStorage.setItem('pw_boatSpeed', String(boatSpeed)) } catch {} }, [boatSpeed])
+  useEffect(() => { try { localStorage.setItem('pw_boatOwned', String(boatOwned)) } catch {} }, [boatOwned])
   useEffect(() => { try { localStorage.setItem('pw_caughtSpecies', JSON.stringify(caughtSpecies)) } catch {} }, [caughtSpecies])
 
   const handleCatch = useCallback((fish: FishCatch) => {
@@ -666,9 +671,9 @@ export default function Home() {
               {/* Boat Speed */}
               <div style={{ fontSize: 11, opacity: 0.5, marginTop: 14, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>⛵ Boat Speed</div>
               {BOAT_SPEEDS.map(spd => {
-                const owned = boatSpeed >= spd.level
+                const owned = boatOwned >= spd.level
                 const canAfford = coins >= spd.cost
-                const isNext = spd.level === boatSpeed + 1
+                const isNext = spd.level === boatOwned + 1
                 return (
                   <div key={spd.level} style={{
                     display: 'flex',
@@ -691,6 +696,7 @@ export default function Home() {
                         onClick={() => {
                           if (canAfford) {
                             setCoins(prev => prev - spd.cost)
+                            setBoatOwned(spd.level)
                             setBoatSpeed(spd.level)
                           }
                         }}
@@ -823,6 +829,33 @@ export default function Home() {
             <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Extras</div>
             <Toggle label="Dramatic Light" value={dramaticLighting} onChange={setDramaticLighting} />
             <Toggle label="Day/Night" value={dayNight} onChange={setDayNight} />
+
+            <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Boat</div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {BOAT_SPEEDS.map(spd => {
+                const owned = boatOwned >= spd.level
+                const active = boatSpeed === spd.level
+                return (
+                  <button
+                    key={spd.level}
+                    onClick={() => { if (owned) setBoatSpeed(spd.level) }}
+                    style={{
+                      flex: 1,
+                      padding: '4px 6px',
+                      borderRadius: 6,
+                      border: active ? '1px solid #1a88c8' : '1px solid rgba(255,255,255,0.15)',
+                      background: active ? 'rgba(26,136,200,0.3)' : 'transparent',
+                      color: owned ? 'white' : 'rgba(255,255,255,0.3)',
+                      fontSize: 10,
+                      cursor: owned ? 'pointer' : 'not-allowed',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {spd.name.split(' ')[0]}
+                  </button>
+                )
+              })}
+            </div>
           </>
         )}
       </div>
