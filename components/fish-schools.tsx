@@ -14,7 +14,7 @@ import { simplex3 } from '@/lib/simplex'
 export function FishSchools() {
   const groupRef = useRef<THREE.Group>(null)
 
-  // Generate school positions in open water near coasts
+  // Generate school positions in deeper water
   const schools = useMemo(() => {
     const result: { center: [number, number, number]; fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] }[] = []
     const count = 800
@@ -28,23 +28,22 @@ export function FishSchools() {
 
       const { influence } = islandInfluence(nx, ny, nz, true)
 
-      // In open water (influence < 0.05 = water, < -0.5 = deep ocean)
-      if (influence < 0.05 && influence > -0.9) {
-        // Only some spots (noise-based)
+      // Deeper water only (well away from shore)
+      if (influence < -0.2) {
         const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
         if (spot > 0.3) {
-          const r = 2.99 // below water surface
+          const r = 2.99
           const center: [number, number, number] = [nx * r, ny * r, nz * r]
 
-          // 3-5 fish per school with varying sizes
-          const fishCount = 3 + Math.floor(Math.random() * 3)
+          // 5-8 visible fish per school
+          const fishCount = 5 + Math.floor(Math.random() * 4)
           const fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] = []
           for (let f = 0; f < fishCount; f++) {
             fish.push({
               offset: [
-                (Math.random() - 0.5) * 0.04,
+                (Math.random() - 0.5) * 0.06,
                 (Math.random() - 0.5) * 0.01,
-                (Math.random() - 0.5) * 0.04,
+                (Math.random() - 0.5) * 0.06,
               ],
               speed: 0.8 + Math.random() * 0.6,
               phase: Math.random() * Math.PI * 2,
@@ -56,7 +55,7 @@ export function FishSchools() {
         }
       }
 
-      if (result.length >= 15) break // cap at 15 schools
+      if (result.length >= 15) break
     }
 
     return result
@@ -201,7 +200,7 @@ function getSchoolCenters(): [number, number, number][] {
 
     const { influence } = islandInfluence(nx, ny, nz, true)
 
-    if (influence < 0.05 && influence > -0.9) {
+    if (influence < -0.2) {
       const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
       if (spot > 0.3) {
         const r = 2.99
@@ -216,20 +215,63 @@ function getSchoolCenters(): [number, number, number][] {
   return results
 }
 
-export function getNearestFishSchool(pos: THREE.Vector3): { position: [number, number, number]; distance: number } | null {
+export function getNearestFishSchool(pos: THREE.Vector3): { position: [number, number, number]; distance: number; stock: number } | null {
   const centers = getSchoolCenters()
   if (centers.length === 0) return null
 
-  let best: [number, number, number] = centers[0]
-  let bestDist = Infinity
-
-  for (const c of centers) {
-    const d = pos.distanceTo(new THREE.Vector3(...c))
-    if (d < bestDist) {
-      bestDist = d
-      best = c
+  // Initialize stock if needed
+  if (_schoolStock.length === 0) {
+    for (let i = 0; i < centers.length; i++) {
+      _schoolStock.push(10) // 10 fish per school
     }
   }
 
-  return { position: best, distance: bestDist }
+  let bestIdx = 0
+  let bestDist = Infinity
+
+  for (let i = 0; i < centers.length; i++) {
+    // Only consider schools with fish remaining
+    if (_schoolStock[i] <= 0) continue
+    const d = pos.distanceTo(new THREE.Vector3(...centers[i]))
+    if (d < bestDist) {
+      bestDist = d
+      bestIdx = i
+    }
+  }
+
+  if (bestDist === Infinity) return null
+
+  return { position: centers[bestIdx], distance: bestDist, stock: _schoolStock[bestIdx] }
 }
+
+// Consume one fish from the nearest school. Call when a fish is caught.
+export function consumeFishFromSchool(pos: THREE.Vector3): void {
+  const centers = getSchoolCenters()
+  if (centers.length === 0) return
+
+  let bestIdx = 0
+  let bestDist = Infinity
+
+  for (let i = 0; i < centers.length; i++) {
+    if (_schoolStock[i] <= 0) continue
+    const d = pos.distanceTo(new THREE.Vector3(...centers[i]))
+    if (d < bestDist) {
+      bestDist = d
+      bestIdx = i
+    }
+  }
+
+  if (_schoolStock[bestIdx] > 0) {
+    _schoolStock[bestIdx]--
+
+    // Respawn this school after 45 seconds
+    if (_schoolStock[bestIdx] <= 0) {
+      setTimeout(() => {
+        _schoolStock[bestIdx] = 10
+      }, 45000)
+    }
+  }
+}
+
+// Stock tracking
+const _schoolStock: number[] = []

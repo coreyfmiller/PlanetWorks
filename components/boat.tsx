@@ -4,7 +4,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from 'rea
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
-import { getNearestFishSchool } from '@/components/fish-schools'
+import { getNearestFishSchool, consumeFishFromSchool } from '@/components/fish-schools'
 
 export interface FishCatch {
   name: string
@@ -181,6 +181,9 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFis
         s.fishing = 'caught'
         s.fishTimer = 0
         const fish = rollFish(rodLevel)
+        // Consume from nearest school
+        const pos = new THREE.Vector3(0, 1, 0).applyQuaternion(s.quat).normalize().multiplyScalar(s.altitude)
+        consumeFishFromSchool(pos)
         onCatch?.(fish)
         onFishingState?.('caught')
       } else if (s.fishing === 'waiting') {
