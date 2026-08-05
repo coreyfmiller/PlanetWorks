@@ -9,7 +9,7 @@ function Model({ path, scale = 1 }: { path: string; scale?: number }) {
   return <primitive object={scene.clone()} scale={scale} />
 }
 
-function ModelViewer({ path, label, scale = 1 }: { path: string; label: string; scale?: number }) {
+function ModelViewer({ path, label, description, scale = 1 }: { path: string; label: string; description?: string; scale?: number }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <div style={{ width: 300, height: 240, borderRadius: 12, overflow: 'hidden', border: '1px solid #333', background: '#1a1a2e' }}>
@@ -24,7 +24,19 @@ function ModelViewer({ path, label, scale = 1 }: { path: string; label: string; 
           <gridHelper args={[4, 8, '#333', '#222']} />
         </Canvas>
       </div>
-      <span style={{ color: 'white', fontSize: 14, fontFamily: 'system-ui, sans-serif' }}>{label}</span>
+      <span style={{ color: 'white', fontSize: 14, fontFamily: 'system-ui, sans-serif', fontWeight: 'bold' }}>{label}</span>
+      {description && <span style={{ color: '#888', fontSize: 11, fontFamily: 'system-ui, sans-serif', maxWidth: 280, textAlign: 'center' }}>{description}</span>}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div style={{ width: '100%', maxWidth: 1200 }}>
+      <h2 style={{ color: '#aaa', fontFamily: 'system-ui, sans-serif', fontSize: 16, margin: '32px 0 16px', borderBottom: '1px solid #333', paddingBottom: 8 }}>{title}</h2>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center' }}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -35,26 +47,36 @@ export default function ModelsPage() {
       width: '100vw',
       minHeight: '100vh',
       background: '#111',
-      padding: 40,
+      padding: '40px 20px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 32,
+      gap: 16,
     }}>
-      <h1 style={{ color: 'white', fontFamily: 'system-ui, sans-serif', fontSize: 24, margin: 0 }}>Generated Models (Meshy)</h1>
-      <p style={{ color: '#888', fontFamily: 'system-ui, sans-serif', fontSize: 13, margin: 0 }}>Orbit controls: click and drag to rotate</p>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'center' }}>
-        <ModelViewer path="/models/boat-basic.glb" label="Lv.1 — Cloth Sail" scale={1} />
-        <ModelViewer path="/models/boat-canvas.glb" label="Lv.2 — Canvas Sail" scale={1} />
-        <ModelViewer path="/models/boat-racing.glb" label="Lv.3 — Racing Sail" scale={1} />
-        <ModelViewer path="/models/boat-motor.glb" label="Lv.4 — Motor Engine" scale={1} />
-        <ModelViewer path="/models/airplane.glb" label="Airplane" scale={1} />
-        <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" scale={1} />
-        <ModelViewer path="/models/port.glb" label="Port / Dock" scale={1} />
-        <ModelViewer path="/models/tree-conifer.glb" label="Conifer Tree" scale={1} />
-        <ModelViewer path="/models/tree-broadleaf.glb" label="Broadleaf Tree" scale={1} />
-        <ModelViewer path="/models/tree-palm.glb" label="Palm Tree" scale={1} />
-      </div>
+      <h1 style={{ color: 'white', fontFamily: 'system-ui, sans-serif', fontSize: 28, margin: 0 }}>PlanetWorks — Asset Library</h1>
+      <p style={{ color: '#666', fontFamily: 'system-ui, sans-serif', fontSize: 13, margin: 0 }}>Generated with Meshy AI. Drag to orbit.</p>
+
+      <Section title="Boats (Upgradeable)">
+        <ModelViewer path="/models/boat-basic.glb" label="Lv.1 — Cloth Sail" description="Free starter. Weathered oak rowboat with patched sail." scale={1} />
+        <ModelViewer path="/models/boat-canvas.glb" label="Lv.2 — Canvas Sail" description="40 coins. Varnished mahogany hull, dual canvas sails." scale={1} />
+        <ModelViewer path="/models/boat-racing.glb" label="Lv.3 — Racing Yacht" description="120 coins. Sleek dark blue hull, tall white dacron sails." scale={1} />
+        <ModelViewer path="/models/boat-motor.glb" label="Lv.4 — Motor Engine" description="300 coins. White fiberglass, chrome outboard, no sails." scale={1} />
+      </Section>
+
+      <Section title="Vehicles">
+        <ModelViewer path="/models/airplane.glb" label="Biplane" description="Vintage red biplane with wooden propeller and fabric wings." scale={1} />
+        <ModelViewer path="/models/pirate-ship.glb" label="Pirate Ship" description="Dark weathered hull, torn black sails, skull and crossbones." scale={1} />
+      </Section>
+
+      <Section title="Structures">
+        <ModelViewer path="/models/port.glb" label="Port / Harbor" description="Wooden pier, lighthouse, fish market shack, crates and barrels." scale={1} />
+      </Section>
+
+      <Section title="Trees (Low Poly)">
+        <ModelViewer path="/models/tree-conifer.glb" label="Conifer" description="Pine/fir. Used in highland and forest biomes." scale={1} />
+        <ModelViewer path="/models/tree-broadleaf.glb" label="Broadleaf" description="Oak/birch. Used in grassland and mid-elevation." scale={1} />
+        <ModelViewer path="/models/tree-palm.glb" label="Palm" description="Tropical. Placed near coastlines and beaches." scale={1} />
+      </Section>
     </div>
   )
 }
