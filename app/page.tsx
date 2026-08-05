@@ -5,7 +5,7 @@ import { Canvas, useThree, useFrame } from '@react-three/fiber'
 import { Planet } from '@/components/planet'
 import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
-import { Boat, FishCatch, RODS, BOAT_SPEEDS } from '@/components/boat'
+import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE } from '@/components/boat'
 import { PirateShip } from '@/components/pirate'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
@@ -55,6 +55,7 @@ export default function Home() {
   })
   const [boatPos, setBoatPos] = useState<THREE.Vector3 | null>(null)
   const [pirateWarning, setPirateWarning] = useState(false)
+  const [showJournal, setShowJournal] = useState(false)
 
   // Save to localStorage on change
   useEffect(() => { try { localStorage.setItem('pw_coins', String(coins)) } catch {} }, [coins])
@@ -296,10 +297,67 @@ export default function Home() {
             backdropFilter: 'blur(8px)',
             display: 'flex',
             gap: 12,
+            alignItems: 'center',
           }}>
             <span>🪙 {coins}</span>
             {catches.length > 0 && <span>🐟 {catches.length}</span>}
+            <span
+              onClick={() => setShowJournal(!showJournal)}
+              style={{ cursor: 'pointer', fontSize: 15 }}
+              title="Fish Journal"
+            >📖</span>
           </div>
+
+          {/* Fish Journal */}
+          {showJournal && (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: 'rgba(10,20,40,0.95)',
+              borderRadius: 16,
+              padding: '20px 24px',
+              color: 'white',
+              fontSize: 13,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(12px)',
+              border: '1px solid rgba(100,150,255,0.2)',
+              minWidth: 300,
+              maxHeight: '75vh',
+              overflowY: 'auto',
+              zIndex: 50,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{ fontSize: 16, fontWeight: 'bold' }}>📖 Fish Journal ({caughtSpecies.length}/{FISH_TABLE.length})</span>
+                <button onClick={() => setShowJournal(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: 18, cursor: 'pointer' }}>✕</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {FISH_TABLE.map(fish => {
+                  const caught = caughtSpecies.includes(fish.name)
+                  return (
+                    <div key={fish.name} style={{
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      background: caught ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+                      opacity: caught ? 1 : 0.4,
+                      border: `1px solid ${caught ?
+                        (fish.rarity === 'legendary' ? 'gold' :
+                         fish.rarity === 'epic' ? '#ff6600' :
+                         fish.rarity === 'rare' ? '#a855f7' :
+                         fish.rarity === 'uncommon' ? '#3b82f6' : 'rgba(255,255,255,0.1)') :
+                        'transparent'}`,
+                    }}>
+                      <div style={{ fontSize: 14 }}>{caught ? fish.emoji : '❓'} {caught ? fish.name : '???'}</div>
+                      <div style={{ fontSize: 10, opacity: 0.5 }}>
+                        {caught ? `${fish.rarity} · 🪙${fish.value}` : `Rod Lv.${fish.rodLevel}`}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Port compass */}
           {!nearPort && portDirection && (
