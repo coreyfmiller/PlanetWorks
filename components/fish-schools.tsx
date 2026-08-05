@@ -14,10 +14,10 @@ import { simplex3 } from '@/lib/simplex'
 export function FishSchools() {
   const groupRef = useRef<THREE.Group>(null)
 
-  // Generate school positions in deeper water
+  // Generate school positions evenly distributed in deep water
   const schools = useMemo(() => {
     const result: { center: [number, number, number]; fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] }[] = []
-    const count = 800
+    const count = 2000
 
     for (let i = 0; i < count; i++) {
       const phi = Math.acos(1 - 2 * (i + 0.5) / count)
@@ -28,14 +28,28 @@ export function FishSchools() {
 
       const { influence } = islandInfluence(nx, ny, nz, true)
 
-      // Deeper water only (well away from shore)
+      // Deep water only
       if (influence < -0.2) {
-        const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
-        if (spot > 0.3) {
+        // Use every 3rd valid spot for even spacing
+        if (result.length * 3 > i - (count - result.length * 3)) {
+          // Skip to space them out
+        } else {
           const r = 2.99
           const center: [number, number, number] = [nx * r, ny * r, nz * r]
 
-          // 5-8 visible fish per school
+          // Check minimum distance from other schools
+          let tooClose = false
+          for (const existing of result) {
+            const dx = existing.center[0] - center[0]
+            const dy = existing.center[1] - center[1]
+            const dz = existing.center[2] - center[2]
+            if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.5) {
+              tooClose = true
+              break
+            }
+          }
+          if (tooClose) continue
+
           const fishCount = 5 + Math.floor(Math.random() * 4)
           const fish: { offset: [number, number, number]; speed: number; phase: number; size: number }[] = []
           for (let f = 0; f < fishCount; f++) {
@@ -189,7 +203,7 @@ function getSchoolCenters(): [number, number, number][] {
   if (_schoolCenters) return _schoolCenters
 
   const results: [number, number, number][] = []
-  const count = 800
+  const count = 2000
 
   for (let i = 0; i < count; i++) {
     const phi = Math.acos(1 - 2 * (i + 0.5) / count)
@@ -201,10 +215,22 @@ function getSchoolCenters(): [number, number, number][] {
     const { influence } = islandInfluence(nx, ny, nz, true)
 
     if (influence < -0.2) {
-      const spot = simplex3(nx * 5 + 200, ny * 5 + 200, nz * 5 + 200)
-      if (spot > 0.3) {
-        const r = 2.99
-        results.push([nx * r, ny * r, nz * r])
+      const r = 2.99
+      const pos: [number, number, number] = [nx * r, ny * r, nz * r]
+
+      // Minimum distance from other schools
+      let tooClose = false
+      for (const existing of results) {
+        const dx = existing[0] - pos[0]
+        const dy = existing[1] - pos[1]
+        const dz = existing[2] - pos[2]
+        if (Math.sqrt(dx * dx + dy * dy + dz * dz) < 0.5) {
+          tooClose = true
+          break
+        }
+      }
+      if (!tooClose) {
+        results.push(pos)
       }
     }
 

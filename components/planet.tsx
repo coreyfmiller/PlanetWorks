@@ -253,8 +253,8 @@ export function Planet({
         height += peak * peak * 1.2
       }
 
-      // Sink slightly into terrain so trees don't float
-      height -= 0.01
+      // Sink into terrain so trees don't float
+      height -= 0.03
 
       // Distribute 5 types based on biome + variation
       const variation = simplex3(nx * 50, ny * 50, nz * 50) * 0.5 + 0.5
