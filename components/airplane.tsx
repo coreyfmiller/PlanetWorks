@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 
@@ -17,9 +17,10 @@ import * as THREE from 'three'
  * No heading variable. No poles. No flipping.
  */
 
-export function Airplane() {
+export function Airplane({ trail = true }: { trail?: boolean }) {
   const groupRef = useRef<THREE.Group>(null)
   const propellerRef = useRef<THREE.Mesh>(null)
+  const trailRef = useRef<THREE.Points>(null)
   const { camera } = useThree()
 
   const state = useRef({
@@ -32,6 +33,11 @@ export function Airplane() {
     keys: {} as Record<string, boolean>,
     camPos: new THREE.Vector3(0, 5, 8),
     camTarget: new THREE.Vector3(0, 0, 0),
+    // Trail particles: ring buffer of past positions (2 trails, one per wingtip)
+    trailPositions: new Float32Array(240 * 3), // 120 per wing x 2
+    trailAlphas: new Float32Array(240),
+    trailIndex: 0,
+    trailTimer: 0,
   })
 
   useEffect(() => {
@@ -128,6 +134,43 @@ export function Airplane() {
       propellerRef.current.rotation.z += dt * s.speed * 35
     }
 
+    // --- TRAIL PARTICLES ---
+    // Always emit, update geometry if ref is ready
+    s.trailTimer += dt
+
+    // Emit from both wingtips every frame (constant stream)
+    // Left wingtip (top of wing, outer edge)
+    const leftIdx = (s.trailIndex * 2) % 240
+    const leftWing = position.clone()
+      .add(localRight.clone().multiplyScalar(-0.16))
+      .add(localUp.clone().multiplyScalar(0.025))
+    s.trailPositions[leftIdx * 3] = leftWing.x
+    s.trailPositions[leftIdx * 3 + 1] = leftWing.y
+    s.trailPositions[leftIdx * 3 + 2] = leftWing.z
+    s.trailAlphas[leftIdx] = 1.0
+
+    // Right wingtip (top of wing, outer edge)
+    const rightIdx = (s.trailIndex * 2 + 1) % 240
+    const rightWing = position.clone()
+      .add(localRight.clone().multiplyScalar(0.16))
+      .add(localUp.clone().multiplyScalar(0.025))
+    s.trailPositions[rightIdx * 3] = rightWing.x
+    s.trailPositions[rightIdx * 3 + 1] = rightWing.y
+    s.trailPositions[rightIdx * 3 + 2] = rightWing.z
+    s.trailAlphas[rightIdx] = 1.0
+
+    s.trailIndex++
+
+    // Fade all particles (slow fade for solid trails)
+    for (let i = 0; i < 240; i++) {
+      s.trailAlphas[i] = Math.max(0, s.trailAlphas[i] - dt * 0.5)
+    }
+
+    if (trailRef.current && trailRef.current.geometry.attributes.position) {
+      trailRef.current.geometry.attributes.position.needsUpdate = true
+      trailRef.current.geometry.attributes.alpha.needsUpdate = true
+    }
+
     // --- CAMERA ---
     // Camera directly behind the tail, angled down slightly to show more ground
     const behindDir = localForward.clone().negate()
@@ -154,6 +197,7 @@ export function Airplane() {
   })
 
   return (
+    <>
     <group ref={groupRef}>
       {/* Fuselage - horizontal (along Z axis) */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
@@ -245,5 +289,53 @@ export function Airplane() {
         <meshLambertMaterial color="#222222" flatShading />
       </mesh>
     </group>
+
+    {/* Trail particles - always rendered */}
+    <TrailPoints ref={trailRef} positions={state.current.trailPositions} alphas={state.current.trailAlphas} />
+    </>
   )
 }
+
+const TrailPoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
+  function TrailPoints({ positions, alphas }, ref) {
+    const innerRef = useRef<THREE.Points>(null)
+
+    useImperativeHandle(ref, () => innerRef.current!, [])
+
+    const geometry = useMemo(() => {
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      g.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1))
+      return g
+    }, [positions, alphas])
+
+    return (
+      <points ref={innerRef} geometry={geometry} frustumCulled={false}>
+        <shaderMaterial
+          transparent
+          depthWrite={false}
+          vertexShader={`
+            attribute float alpha;
+            varying float vAlpha;
+            void main() {
+              vAlpha = alpha;
+              vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+              gl_PointSize = 12.0 * (1.0 / -mvPos.z);
+              gl_Position = projectionMatrix * mvPos;
+            }
+          `}
+          fragmentShader={`
+            varying float vAlpha;
+            void main() {
+              if (vAlpha < 0.01) discard;
+              float d = length(gl_PointCoord - vec2(0.5));
+              if (d > 0.5) discard;
+              float soft = 1.0 - d * 2.0;
+              gl_FragColor = vec4(1.0, 1.0, 1.0, vAlpha * soft * 0.7);
+            }
+          `}
+        />
+      </points>
+    )
+  }
+)

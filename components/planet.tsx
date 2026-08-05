@@ -108,6 +108,7 @@ export interface PlanetProps {
   snowCap?: boolean
   pollen?: boolean
   biggerTrees?: boolean
+  shoreFoam?: boolean
 }
 
 export function Planet({
@@ -124,6 +125,7 @@ export function Planet({
   snowCap = true,
   pollen = true,
   biggerTrees = true,
+  shoreFoam = true,
 }: PlanetProps) {
   const meshRef = useRef<THREE.Mesh>(null)
 
@@ -380,6 +382,9 @@ export function Planet({
 
       {/* Water */}
       {waves ? <AnimatedWater /> : <SimpleWater />}
+
+      {/* Shore foam */}
+      {shoreFoam && <ShoreFoam wideBeach={wideBeach} />}
 
       {/* Trees by biome - 5 types with rotation */}
       {treeData.map((tree, i) => {
@@ -842,6 +847,108 @@ function House({ position, rotY = 0, color, roofColor, scale }: {
       </mesh>
     </group>
   )
+}
+
+// Shore foam: animated white ring at coastlines using a custom shader on a sphere
+function ShoreFoam({ wideBeach }: { wideBeach: boolean }) {
+  const ref = useRef<THREE.Mesh>(null)
+
+  const { geometry, material } = useMemo(() => {
+    // Build a sphere and store per-vertex "coastness" as an attribute
+    const geo = new THREE.IcosahedronGeometry(3.03, 7)
+    const positions = geo.attributes.position
+    const foamAlpha = new Float32Array(positions.count)
+
+    for (let i = 0; i < positions.count; i++) {
+      const x = positions.getX(i)
+      const y = positions.getY(i)
+      const z = positions.getZ(i)
+      const len = Math.sqrt(x * x + y * y + z * z)
+      const nx = x / len
+      const ny = y / len
+      const nz = z / len
+
+      const { influence } = islandInfluence(nx, ny, nz, wideBeach)
+
+      // Foam appears in a narrow band around the coastline (influence 0.05 to 0.2)
+      // Peak at ~0.1 (the exact water/land boundary)
+      let foam = 0
+      if (influence > 0.03 && influence < 0.22) {
+        const dist = Math.abs(influence - 0.1)
+        foam = 1 - dist / 0.12
+        foam = Math.max(0, foam)
+        foam *= foam // soften edges
+
+        // Add noise breakup so it's not a perfect ring
+        const noiseVal = simplex3(nx * 25, ny * 25, nz * 25) * 0.5 + 0.5
+        foam *= 0.5 + noiseVal * 0.5
+
+        // Patchy: some areas have no foam
+        const patch = simplex3(nx * 8 + 50, ny * 8 + 50, nz * 8 + 50) * 0.5 + 0.5
+        if (patch < 0.3) foam = 0
+      }
+
+      foamAlpha[i] = foam
+
+      // Keep vertices on the sphere surface (slightly above water)
+      positions.setXYZ(i, nx * 3.03, ny * 3.03, nz * 3.03)
+    }
+
+    geo.setAttribute('aFoam', new THREE.BufferAttribute(foamAlpha, 1))
+    geo.computeVertexNormals()
+
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+      },
+      vertexShader: `
+        attribute float aFoam;
+        varying float vFoam;
+        varying vec3 vWorldPos;
+        void main() {
+          vFoam = aFoam;
+          vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        varying float vFoam;
+        varying vec3 vWorldPos;
+
+        float hash(vec2 p) {
+          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+        }
+
+        void main() {
+          if (vFoam < 0.01) discard;
+
+          // Animate: gentle pulse that varies by position
+          float wave = sin(uTime * 1.5 + vWorldPos.x * 3.0 + vWorldPos.z * 2.0) * 0.3 + 0.7;
+          float wave2 = sin(uTime * 0.8 + vWorldPos.y * 4.0 + vWorldPos.x * 1.5) * 0.2 + 0.8;
+
+          float alpha = vFoam * wave * wave2;
+          alpha = clamp(alpha, 0.0, 0.7);
+
+          // White foam with slight blue tint
+          vec3 color = vec3(0.95, 0.97, 1.0);
+
+          gl_FragColor = vec4(color, alpha);
+        }
+      `,
+    })
+
+    return { geometry: geo, material: mat }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wideBeach])
+
+  useFrame(({ clock }) => {
+    material.uniforms.uTime.value = clock.elapsedTime
+  })
+
+  return <mesh ref={ref} geometry={geometry} material={material} />
 }
 
 function SimpleWater() {

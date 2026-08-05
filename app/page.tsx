@@ -23,6 +23,8 @@ export default function Home() {
   const [snowCap, setSnowCap] = useState(true)
   const [pollen, setPollen] = useState(false)
   const [biggerTrees, setBiggerTrees] = useState(true)
+  const [shoreFoam, setShoreFoam] = useState(true)
+  const [planeTrail, setPlaneTrail] = useState(true)
 
   // Control panel expand state
   const [expanded, setExpanded] = useState(false)
@@ -53,13 +55,14 @@ export default function Home() {
           snowCap={snowCap}
           pollen={pollen}
           biggerTrees={biggerTrees}
+          shoreFoam={shoreFoam}
         />
 
         {flyMode ? (
           <SceneReset />
         ) : null}
         {flyMode ? (
-          <Airplane />
+          <Airplane trail={planeTrail} />
         ) : (
           <FreeOrbit />
         )}
@@ -105,6 +108,7 @@ export default function Home() {
       }}>
         {/* Always visible */}
         <Toggle label="✈ Fly Mode" value={flyMode} onChange={setFlyMode} />
+        {flyMode && <Toggle label="Contrail" value={planeTrail} onChange={setPlaneTrail} />}
 
         {/* Expand/collapse button */}
         <button
@@ -132,6 +136,7 @@ export default function Home() {
             <Toggle label="Wide Beach" value={wideBeach} onChange={setWideBeach} />
             <Toggle label="Snow Caps" value={snowCap} onChange={setSnowCap} />
             <Toggle label="Bigger Trees" value={biggerTrees} onChange={setBiggerTrees} />
+            <Toggle label="Shore Foam" value={shoreFoam} onChange={setShoreFoam} />
 
             <div style={{ fontSize: 11, opacity: 0.5, marginTop: 8, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Sky</div>
             <Toggle label="Moon" value={moon} onChange={setMoon} />
