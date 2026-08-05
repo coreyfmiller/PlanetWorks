@@ -110,11 +110,43 @@ export function FishSchools() {
   return (
     <group ref={groupRef}>
       {allFish.map((f, i) => (
-        <mesh key={i} position={f.pos} scale={f.size}>
-          <coneGeometry args={[0.5, 2, 3]} />
-          <meshBasicMaterial color="#ff8844" transparent opacity={0.7} />
-        </mesh>
+        <FishMesh key={i} position={f.pos} size={f.size} colorIndex={i % 3} />
       ))}
+    </group>
+  )
+}
+
+function FishMesh({ position, size, colorIndex }: { position: [number, number, number]; size: number; colorIndex: number }) {
+  const colors = ['#6699bb', '#88aacc', '#557799']
+  const bodyColor = colors[colorIndex]
+
+  return (
+    <group position={position} scale={size}>
+      {/* Body - elongated sphere */}
+      <mesh>
+        <sphereGeometry args={[1, 5, 4]} />
+        <meshLambertMaterial color={bodyColor} flatShading />
+      </mesh>
+      {/* Tail fin */}
+      <mesh position={[-1.2, 0, 0]} rotation={[0, 0, Math.PI / 4]}>
+        <planeGeometry args={[0.8, 0.8]} />
+        <meshLambertMaterial color={bodyColor} side={THREE.DoubleSide} flatShading />
+      </mesh>
+      {/* Dorsal fin */}
+      <mesh position={[0.2, 0.6, 0]} rotation={[0, 0, -0.3]}>
+        <planeGeometry args={[0.6, 0.4]} />
+        <meshLambertMaterial color={bodyColor} side={THREE.DoubleSide} flatShading />
+      </mesh>
+      {/* Eye */}
+      <mesh position={[0.7, 0.2, 0.45]}>
+        <sphereGeometry args={[0.15, 4, 4]} />
+        <meshBasicMaterial color="#111111" />
+      </mesh>
+      {/* Belly (lighter) */}
+      <mesh position={[0, -0.3, 0]} scale={[1.0, 0.5, 0.9]}>
+        <sphereGeometry args={[0.8, 4, 3]} />
+        <meshLambertMaterial color="#aaccdd" flatShading />
+      </mesh>
     </group>
   )
 }

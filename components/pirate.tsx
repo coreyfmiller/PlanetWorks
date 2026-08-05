@@ -3,6 +3,7 @@
 import { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { islandInfluence } from '@/components/planet'
 
 interface PirateProps {
   boatPosition: THREE.Vector3 | null
@@ -83,12 +84,41 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught, onA
     // Project toBoat onto tangent plane
     const toBoatFlat = toBoat.clone().sub(pirateUp.clone().multiplyScalar(toBoat.dot(pirateUp))).normalize()
 
-    // Rotate toward boat on the sphere surface
+    // Check if land is ahead before moving
+    const { influence: aheadInfluence } = islandInfluence(
+      toBoatFlat.x * 0.05 + pirateUp.x,
+      toBoatFlat.y * 0.05 + pirateUp.y,
+      toBoatFlat.z * 0.05 + pirateUp.z,
+      true
+    )
+
+    // Only move if water ahead, otherwise try to go perpendicular
     const chaseSpeed = boatMaxSpeed * 0.5 * dt * 0.12
-    if (toBoatFlat.length() > 0.001) {
+    if (aheadInfluence > 0.08) {
+      // Land ahead, steer perpendicular to avoid
+      const perpendicular = new THREE.Vector3().crossVectors(pirateUp, toBoatFlat).normalize()
+      const avoidQ = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3().crossVectors(pirateUp, perpendicular).normalize(),
+        chaseSpeed
+      )
+      s.quat.premultiply(avoidQ)
+      s.quat.normalize()
+    } else if (toBoatFlat.length() > 0.001) {
       const rotAxis = new THREE.Vector3().crossVectors(pirateUp, toBoatFlat).normalize()
       const chaseQ = new THREE.Quaternion().setFromAxisAngle(rotAxis, chaseSpeed)
       s.quat.premultiply(chaseQ)
+      s.quat.normalize()
+    }
+
+    // Also check current position and push back if on land
+    const { influence: currentInfluence } = islandInfluence(pirateUp.x, pirateUp.y, pirateUp.z, true)
+    if (currentInfluence > 0.1) {
+      // On land, push away from land center
+      const backQ = new THREE.Quaternion().setFromAxisAngle(
+        new THREE.Vector3().crossVectors(pirateUp, toBoatFlat).normalize(),
+        -chaseSpeed * 2
+      )
+      s.quat.premultiply(backQ)
       s.quat.normalize()
     }
 
