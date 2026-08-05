@@ -7,12 +7,8 @@ import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
-import { TitleScreen } from '@/components/title-screen'
 
 export default function Home() {
-  // Title screen
-  const [started, setStarted] = useState(false)
-
   // Core
   const [waves, setWaves] = useState(true)
   const [atmosphere, setAtmosphere] = useState(true)
@@ -35,7 +31,6 @@ export default function Home() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      {!started && <TitleScreen onStart={() => setStarted(true)} />}
       <AmbientAudio flyMode={flyMode} />
       <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
