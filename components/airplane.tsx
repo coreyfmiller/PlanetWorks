@@ -79,15 +79,15 @@ export function Airplane() {
       s.speed = Math.max(s.speed - dt * 0.4, 0.15)
     }
 
-    // Altitude
-    if (keys['Space']) {
-      s.altitude = Math.min(s.altitude + dt * 0.6, 5.5)
-      targetPitch = -0.2
-    }
-    if (keys['ShiftLeft'] || keys['ShiftRight']) {
-      s.altitude = Math.max(s.altitude - dt * 0.6, 3.15)
-      targetPitch = 0.2
-    }
+    // Altitude — disabled for now
+    // if (keys['Space']) {
+    //   s.altitude = Math.min(s.altitude + dt * 0.6, 5.5)
+    //   targetPitch = -0.2
+    // }
+    // if (keys['ShiftLeft'] || keys['ShiftRight']) {
+    //   s.altitude = Math.max(s.altitude - dt * 0.6, 3.15)
+    //   targetPitch = 0.2
+    // }
 
     // Move forward: rotate around LOCAL X axis
     // This moves our "up" vector forward along the sphere
