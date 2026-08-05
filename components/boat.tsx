@@ -327,7 +327,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFis
     if (s.speed > 0.03) {
       const leftIdx = (s.wakeIndex * 2) % 180
       const leftStern = position.clone()
-        .add(finalRight.clone().multiplyScalar(-0.04))
+        .add(finalRight.clone().multiplyScalar(-0.035))
         .add(finalForward.clone().multiplyScalar(-0.08))
       s.wakePositions[leftIdx * 3] = leftStern.x
       s.wakePositions[leftIdx * 3 + 1] = leftStern.y
@@ -336,7 +336,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, onCatch, onFis
 
       const rightIdx = (s.wakeIndex * 2 + 1) % 180
       const rightStern = position.clone()
-        .add(finalRight.clone().multiplyScalar(0.04))
+        .add(finalRight.clone().multiplyScalar(0.035))
         .add(finalForward.clone().multiplyScalar(-0.08))
       s.wakePositions[rightIdx * 3] = rightStern.x
       s.wakePositions[rightIdx * 3 + 1] = rightStern.y
