@@ -55,7 +55,14 @@ export default function Home() {
   })
   const [boatPos, setBoatPos] = useState<THREE.Vector3 | null>(null)
   const [pirateWarning, setPirateWarning] = useState(false)
+  const [piratePos, setPiratePos] = useState<THREE.Vector3 | null>(null)
+  const [pirateActive, setPirateActive] = useState(false)
   const [showJournal, setShowJournal] = useState(false)
+
+  const handlePirateActive = useCallback((active: boolean, position?: THREE.Vector3) => {
+    setPirateActive(active)
+    setPiratePos(active && position ? position.clone() : null)
+  }, [])
 
   // Save to localStorage on change
   useEffect(() => { try { localStorage.setItem('pw_coins', String(coins)) } catch {} }, [coins])
@@ -191,6 +198,7 @@ export default function Home() {
             boatMaxSpeed={BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].maxSpeed}
             isAtPort={nearPort}
             onCaught={handlePirateCaught}
+            onActiveChange={handlePirateActive}
           />
           <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
           </>
@@ -412,6 +420,30 @@ export default function Home() {
                 fontSize: 16,
               }}>⬆</span>
               <span style={{ opacity: 0.7 }}>Port</span>
+            </div>
+          )}
+
+          {/* Pirate skull indicator */}
+          {pirateActive && (
+            <div style={{
+              position: 'absolute',
+              top: !nearPort && portDirection ? 100 : 60,
+              right: 20,
+              background: 'rgba(80,0,0,0.7)',
+              borderRadius: 10,
+              padding: '8px 12px',
+              color: '#ff4444',
+              fontSize: 12,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              border: '1px solid rgba(255,50,50,0.4)',
+              animation: 'pulse 1s ease-in-out infinite',
+            }}>
+              <span style={{ fontSize: 16 }}>☠️</span>
+              <span>Pirate!</span>
             </div>
           )}
 

@@ -9,6 +9,7 @@ interface PirateProps {
   boatMaxSpeed: number
   isAtPort: boolean
   onCaught: () => void
+  onActiveChange?: (active: boolean, position?: THREE.Vector3) => void
 }
 
 /**
@@ -18,7 +19,7 @@ interface PirateProps {
  * Despawns after 25s or if you reach a port.
  * Spawns every 40-70 seconds.
  */
-export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught }: PirateProps) {
+export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught, onActiveChange }: PirateProps) {
   const groupRef = useRef<THREE.Group>(null)
 
   const state = useRef({
@@ -52,6 +53,7 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught }: P
         s.active = true
         s.lifeTimer = 0
         s.caught = false
+        onActiveChange?.(true, new THREE.Vector3(nx, ny, nz).normalize().multiplyScalar(3.04))
       }
 
       if (groupRef.current) groupRef.current.visible = false
@@ -65,7 +67,8 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught }: P
     // Despawn conditions
     if (s.lifeTimer > s.maxLife || isAtPort) {
       s.active = false
-      s.spawnTimer = 40 + Math.random() * 30 // next spawn 40-70s
+      s.spawnTimer = 40 + Math.random() * 30
+      onActiveChange?.(false)
       if (groupRef.current) groupRef.current.visible = false
       return
     }
@@ -95,6 +98,7 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught }: P
 
     if (groupRef.current) {
       groupRef.current.position.copy(finalPos)
+      onActiveChange?.(true, finalPos)
 
       // Orient to face movement direction
       const forward = toBoatFlat.clone()
@@ -110,6 +114,7 @@ export function PirateShip({ boatPosition, boatMaxSpeed, isAtPort, onCaught }: P
       s.active = false
       s.spawnTimer = 40 + Math.random() * 30
       if (groupRef.current) groupRef.current.visible = false
+      onActiveChange?.(false)
       onCaught()
     }
   })
