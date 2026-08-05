@@ -1,8 +1,14 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, Component, ReactNode } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
+
+class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  render() { return this.state.hasError ? this.props.fallback : this.props.children }
+}
 
 function Model({ path, scale = 1 }: { path: string; scale?: number }) {
   const { scene } = useGLTF(path)
@@ -13,16 +19,18 @@ function ModelViewer({ path, label, description, scale = 1 }: { path: string; la
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <div style={{ width: 300, height: 240, borderRadius: 12, overflow: 'hidden', border: '1px solid #333', background: '#1a1a2e' }}>
-        <Canvas camera={{ position: [2, 1.5, 2], fov: 40 }}>
-          <ambientLight intensity={0.6} />
-          <directionalLight position={[3, 5, 4]} intensity={1.5} />
-          <directionalLight position={[-2, -1, -3]} intensity={0.3} color="#4488cc" />
-          <Suspense fallback={null}>
-            <Model path={path} scale={scale} />
-          </Suspense>
-          <OrbitControls enablePan={false} />
-          <gridHelper args={[4, 8, '#333', '#222']} />
-        </Canvas>
+        <ErrorBoundary fallback={<div style={{ color: '#666', padding: 20, textAlign: 'center' }}>Failed to load</div>}>
+          <Canvas camera={{ position: [2, 1.5, 2], fov: 40 }}>
+            <ambientLight intensity={0.6} />
+            <directionalLight position={[3, 5, 4]} intensity={1.5} />
+            <directionalLight position={[-2, -1, -3]} intensity={0.3} color="#4488cc" />
+            <Suspense fallback={null}>
+              <Model path={path} scale={scale} />
+            </Suspense>
+            <OrbitControls enablePan={false} />
+            <gridHelper args={[4, 8, '#333', '#222']} />
+          </Canvas>
+        </ErrorBoundary>
       </div>
       <span style={{ color: 'white', fontSize: 14, fontFamily: 'system-ui, sans-serif', fontWeight: 'bold' }}>{label}</span>
       {description && <span style={{ color: '#888', fontSize: 11, fontFamily: 'system-ui, sans-serif', maxWidth: 280, textAlign: 'center' }}>{description}</span>}
