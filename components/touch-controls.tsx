@@ -203,6 +203,7 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
           <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" size={46} />
           {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" size={46} />}
           {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" size={46} />}
+          <ActionButton label="🚶" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(100,60,0,0.4)" size={46} />
           <ActionButton
             label="🏃"
             onPress={() => { sprintRef.current = true; setGameInput({ sprint: true }) }}

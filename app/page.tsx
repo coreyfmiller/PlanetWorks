@@ -15,7 +15,7 @@ import { AmbientAudio } from '@/components/audio'
 import { getNearestPort, getPorts, PortDocks } from '@/components/ports'
 import { getNearestFishSchool } from '@/components/fish-schools'
 import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
-import { TouchControls, useIsTouchDevice } from '@/components/touch-controls'
+import { TouchControls, useIsTouchDevice, getGameInput } from '@/components/touch-controls'
 import * as THREE from 'three'
 
 type Mode = 'globe' | 'fly' | 'boat' | 'walk'
@@ -207,7 +207,8 @@ export default function Home() {
     setTimeout(() => setSellMessage(null), 2500)
   }, [catches, marketMultiplier])
 
-  // E key to sell at port
+  // E key to sell at port + G key disembark/embark + touch action2 disembark
+  const lastAction2 = useRef(false)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyE' && nearPort && catches.length > 0) {
@@ -215,40 +216,50 @@ export default function Home() {
       }
       // G key to disembark/embark
       if (e.code === 'KeyG') {
-        if (mode === 'boat' && boatPos) {
-          // Check if boat is near shore (look for land nearby)
-          const boatDir = boatPos.clone().normalize()
-          const { influence: boatInfluence } = islandInfluence(boatDir.x, boatDir.y, boatDir.z, true)
-          // Boat must be close to land (influence > 0 means near/on land transition)
-          if (boatInfluence > 0.02) {
-            // Find the nearest land point by stepping inward from boat position toward shore
-            let shorePos = boatPos.clone()
-            const step = boatDir.clone()
-            for (let i = 1; i <= 10; i++) {
-              // Sample slightly further up the sphere (toward land center)
-              const testDir = boatDir.clone().multiplyScalar(1 + i * 0.005).normalize()
-              const { influence: testInf } = islandInfluence(testDir.x, testDir.y, testDir.z, true)
-              if (testInf > 0.15) {
-                shorePos = testDir.multiplyScalar(boatPos.length())
-                break
-              }
-            }
-            setWalkerSpawnPos(shorePos)
-            setParkedBoatPos(boatPos.clone())
-            setMode('walk')
-          }
-        } else if (mode === 'walk') {
-          // Must be near the parked boat to re-board
-          if (parkedBoatPos && walkerPos && walkerPos.distanceTo(parkedBoatPos) < 0.8) {
-            setParkedBoatPos(null)
-            setMode('boat')
-          }
-        }
+        handleDisembark()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [nearPort, catches, handleSell, mode, boatPos, parkedBoatPos, walkerPos])
+
+  // Poll touch action2 for disembark
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const touch = getGameInput()
+      if (touch.action2 && !lastAction2.current) {
+        handleDisembark()
+      }
+      lastAction2.current = touch.action2
+    }, 100)
+    return () => clearInterval(interval)
+  }, [mode, boatPos, parkedBoatPos, walkerPos])
+
+  const handleDisembark = useCallback(() => {
+    if (mode === 'boat' && boatPos) {
+      const boatDir = boatPos.clone().normalize()
+      const { influence: boatInfluence } = islandInfluence(boatDir.x, boatDir.y, boatDir.z, true)
+      if (boatInfluence > 0.02) {
+        let shorePos = boatPos.clone()
+        for (let i = 1; i <= 10; i++) {
+          const testDir = boatDir.clone().multiplyScalar(1 + i * 0.005).normalize()
+          const { influence: testInf } = islandInfluence(testDir.x, testDir.y, testDir.z, true)
+          if (testInf > 0.15) {
+            shorePos = testDir.multiplyScalar(boatPos.length())
+            break
+          }
+        }
+        setWalkerSpawnPos(shorePos)
+        setParkedBoatPos(boatPos.clone())
+        setMode('walk')
+      }
+    } else if (mode === 'walk') {
+      if (parkedBoatPos && walkerPos && walkerPos.distanceTo(parkedBoatPos) < 0.8) {
+        setParkedBoatPos(null)
+        setMode('boat')
+      }
+    }
+  }, [mode, boatPos, parkedBoatPos, walkerPos])
 
   // New features
   const [moon, setMoon] = useState(false)
@@ -1061,7 +1072,27 @@ export default function Home() {
           <ModeButton label="🌍" active={mode === 'globe'} onClick={() => setMode('globe')} />
           <ModeButton label="✈" active={mode === 'fly'} onClick={() => setMode('fly')} />
           <ModeButton label="⛵" active={mode === 'boat'} onClick={() => setMode('boat')} />
-          <ModeButton label="🚶" active={mode === 'walk'} onClick={() => setMode('walk')} />
+          <ModeButton label="🚶" active={mode === 'walk'} onClick={() => {
+            // When entering walk directly, spawn a boat near the walker spawn point
+            if (mode !== 'walk' && !parkedBoatPos) {
+              // Find a water spot near shore for the parked boat
+              for (let i = 0; i < 500; i++) {
+                const phi = Math.acos(1 - 2 * (i + 0.5) / 500)
+                const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5) + 1.0 // offset from walker spawn
+                const nx = Math.sin(phi) * Math.cos(theta)
+                const ny = Math.cos(phi)
+                const nz = Math.sin(phi) * Math.sin(theta)
+                const { influence } = islandInfluence(nx, ny, nz, true)
+                // Just offshore (very low influence = water near land)
+                if (influence > 0.01 && influence < 0.08) {
+                  const pos = new THREE.Vector3(nx, ny, nz).normalize().multiplyScalar(3.0)
+                  setParkedBoatPos(pos)
+                  break
+                }
+              }
+            }
+            setMode('walk')
+          }} />
         </div>
         {mode === 'fly' && <Toggle label="Contrail" value={planeTrail} onChange={setPlaneTrail} />}
 
