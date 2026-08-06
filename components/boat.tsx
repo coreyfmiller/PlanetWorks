@@ -516,7 +516,7 @@ function BoatCharacter() {
   })
 
   // Position character sitting in the boat (on deck level)
-  return <group ref={groupRef} position={[0, 0.01, 0]} />
+  return <group ref={groupRef} position={[0, -0.02, 0]} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
