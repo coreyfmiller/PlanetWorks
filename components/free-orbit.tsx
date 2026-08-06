@@ -10,7 +10,7 @@ import * as THREE from 'three'
  * Camera stays fixed looking at center. Globe spins freely.
  * No gimbal lock possible because we use quaternion rotation on the scene.
  */
-export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance?: number; maxDistance?: number }) {
+export function FreeOrbit({ minDistance = 4.5, maxDistance = 25 }: { minDistance?: number; maxDistance?: number }) {
   const { camera, gl, scene } = useThree()
 
   const state = useRef({
@@ -63,11 +63,35 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance
       state.current.distance = Math.max(minDistance, Math.min(maxDistance, state.current.distance))
     }
 
+    // Pinch to zoom (mobile)
+    let lastPinchDist = 0
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        lastPinchDist = Math.sqrt(dx * dx + dy * dy)
+      }
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dx = e.touches[0].clientX - e.touches[1].clientX
+        const dy = e.touches[0].clientY - e.touches[1].clientY
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const delta = lastPinchDist - dist
+        state.current.distance += delta * 0.02
+        state.current.distance = Math.max(minDistance, Math.min(maxDistance, state.current.distance))
+        lastPinchDist = dist
+      }
+    }
+
     canvas.addEventListener('pointerdown', onPointerDown)
     canvas.addEventListener('pointermove', onPointerMove)
     canvas.addEventListener('pointerup', onPointerUp)
     canvas.addEventListener('pointerleave', onPointerUp)
     canvas.addEventListener('wheel', onWheel, { passive: false })
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false })
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false })
 
     return () => {
       canvas.removeEventListener('pointerdown', onPointerDown)
@@ -75,6 +99,8 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 15 }: { minDistance
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointerleave', onPointerUp)
       canvas.removeEventListener('wheel', onWheel)
+      canvas.removeEventListener('touchstart', onTouchStart)
+      canvas.removeEventListener('touchmove', onTouchMove)
     }
   }, [gl, minDistance, maxDistance])
 
