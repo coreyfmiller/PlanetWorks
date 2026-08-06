@@ -39,6 +39,7 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
   const center = useRef({ x: 0, y: 0 })
 
   const handleStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
     if (touchId.current !== null) return
     const touch = e.changedTouches[0]
     touchId.current = touch.identifier
@@ -49,6 +50,7 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
   }, [])
 
   const handleMove = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
     if (touchId.current === null) return
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i]
@@ -68,6 +70,7 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
   }, [onMove])
 
   const handleEnd = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
     for (let i = 0; i < e.changedTouches.length; i++) {
       if (e.changedTouches[i].identifier === touchId.current) {
         touchId.current = null
@@ -99,6 +102,8 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
         alignItems: 'center',
         justifyContent: 'center',
         touchAction: 'none',
+        zIndex: 100,
+        pointerEvents: 'auto',
       }}
     >
       <div style={{
