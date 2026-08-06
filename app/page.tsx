@@ -326,7 +326,7 @@ export default function Home() {
         ) : mode === 'walk' ? (
           <>
           <Walker spawnPosition={walkerSpawnPos} onPositionUpdate={setWalkerPos} />
-          {parkedBoatPos && <ParkedBoat position={parkedBoatPos} boatLevel={boatOwned} />}
+          {parkedBoatPos && <ParkedBoat position={parkedBoatPos} boatLevel={boatSpeed} />}
           </>
         ) : (
           <FreeOrbit />
