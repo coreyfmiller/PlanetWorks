@@ -268,7 +268,7 @@ export default function Home() {
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', touchAction: 'none' }}>
       <AmbientAudio flyMode={mode !== 'globe'} />
-      <Canvas camera={{ position: isTouch ? [0, 4, 12] : [0, 3, 8], fov: isTouch ? 55 : 50 }}>
+      <Canvas camera={{ position: isTouch ? [0, 5, 16] : [0, 3, 8], fov: isTouch ? 55 : 50 }}>
         <Sky />
         <ambientLight intensity={dramaticLighting ? 0.2 : 0.5} />
         <directionalLight
