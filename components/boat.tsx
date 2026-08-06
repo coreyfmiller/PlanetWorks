@@ -465,7 +465,7 @@ function BoatModel({ level }: { level: number }) {
     '/models/boat-canvas.glb',
     '/models/boat-racing.glb',
   ]
-  const offsets = [0.05, 0.05, 0.05]
+  const offsets = [0.05, 0.05, 0.02]
   const path = paths[Math.min(level, paths.length) - 1]
   const yOffset = offsets[Math.min(level, offsets.length) - 1]
   const { scene } = useGLTF(path)
