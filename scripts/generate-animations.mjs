@@ -72,11 +72,8 @@ async function main() {
   if (!API_KEY) { console.error('Missing key'); process.exit(1) }
   fs.mkdirSync(OUTPUT_DIR, { recursive: true })
 
-  // Generate pick-up animation (for collecting resources)
-  await generateAnimation(276, 'Male Bend Over Pick Up', 'character-cartoon-pickup.glb')
-
-  // Generate heavy swing animation (for chopping trees)
-  await generateAnimation(128, 'Heavy Hammer Swing', 'character-cartoon-chop.glb')
+  // Generate sitting idle animation (for boat)
+  await generateAnimation(33, 'Chair Sit Idle Male', 'character-cartoon-sitting.glb')
 
   console.log('\n=== All done! ===')
 }

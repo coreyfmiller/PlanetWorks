@@ -438,6 +438,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
     <>
     <group ref={groupRef}>
       <BoatModel level={speedLevel} />
+      <BoatCharacter />
     </group>
 
     {/* Bobber */}
@@ -470,6 +471,53 @@ function BoatModel({ level }: { level: number }) {
   const { scene } = useGLTF(path)
   const cloned = useMemo(() => scene.clone(), [scene])
   return <primitive object={cloned} scale={0.16} rotation={[0, Math.PI / 2, 0]} position={[0, yOffset, 0]} />
+}
+
+function BoatCharacter() {
+  const groupRef = useRef<THREE.Group>(null)
+  const { scene, animations } = useGLTF('/models/character-cartoon-sitting.glb')
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null)
+
+  useEffect(() => {
+    if (!groupRef.current) return
+
+    while (groupRef.current.children.length > 0) {
+      groupRef.current.remove(groupRef.current.children[0])
+    }
+
+    scene.scale.set(0.05, 0.05, 0.05)
+    scene.rotation.set(0, 0, 0)
+
+    scene.traverse((child) => {
+      if ((child as THREE.SkinnedMesh).isSkinnedMesh || (child as THREE.Mesh).isMesh) {
+        ;(child as THREE.Mesh).frustumCulled = false
+      }
+    })
+
+    groupRef.current.add(scene)
+
+    if (animations.length > 0) {
+      const mixer = new THREE.AnimationMixer(scene)
+      const action = mixer.clipAction(animations[0])
+      action.setLoop(THREE.LoopRepeat, Infinity)
+      action.play()
+      mixerRef.current = mixer
+    }
+
+    return () => {
+      mixerRef.current?.stopAllAction()
+      if (groupRef.current && scene.parent === groupRef.current) {
+        groupRef.current.remove(scene)
+      }
+    }
+  }, [scene, animations])
+
+  useFrame((_, delta) => {
+    if (mixerRef.current) mixerRef.current.update(Math.min(delta, 0.05))
+  })
+
+  // Position character sitting in the boat (slightly above deck, centered)
+  return <group ref={groupRef} position={[0, 0.06, 0]} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
