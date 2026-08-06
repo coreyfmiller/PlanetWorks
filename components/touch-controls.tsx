@@ -107,7 +107,7 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
       ref={baseRef}
       style={{
         position: 'absolute',
-        bottom: 40,
+        bottom: 80,
         [side]: 10,
         width: 100,
         height: 100,
@@ -199,7 +199,7 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
 
       {/* Right side action buttons */}
       {mode === 'boat' && (
-        <div style={{ position: 'absolute', bottom: 40, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ position: 'absolute', bottom: 80, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" size={46} />
           {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" size={46} />}
           {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" size={46} />}
@@ -214,7 +214,7 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
       )}
 
       {mode === 'walk' && (
-        <div style={{ position: 'absolute', bottom: 40, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ position: 'absolute', bottom: 80, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <ActionButton label="⛵" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(0,100,200,0.4)" size={46} />
           <ActionButton
             label="🏃"
