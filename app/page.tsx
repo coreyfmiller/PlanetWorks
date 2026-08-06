@@ -8,9 +8,8 @@ import { Sky } from '@/components/sky'
 import { Airplane } from '@/components/airplane'
 import { Boat, FishCatch, RODS, BOAT_SPEEDS, FISH_TABLE, BAITS } from '@/components/boat'
 import { Walker } from '@/components/walker'
-import { LandResources } from '@/components/land-resources'
 import { PirateShip } from '@/components/pirate'
-import { TreasureChests } from '@/components/treasure'
+import { TreasureChest, TREASURE_MAP_COST, TreasureLoot } from '@/components/treasure'
 import { FreeOrbit } from '@/components/free-orbit'
 import { AmbientAudio } from '@/components/audio'
 import { getNearestPort, getPorts, PortDocks } from '@/components/ports'
@@ -74,6 +73,7 @@ export default function Home() {
     try { return JSON.parse(localStorage.getItem('pw_caughtSpecies') || '[]') } catch { return [] }
   })
   const [boatPos, setBoatPos] = useState<THREE.Vector3 | null>(null)
+  const [boatForward, setBoatForward] = useState<THREE.Vector3 | null>(null)
   const [pirateWarning, setPirateWarning] = useState(false)
   const [piratePos, setPiratePos] = useState<THREE.Vector3 | null>(null)
   const [pirateActive, setPirateActive] = useState(false)
@@ -81,6 +81,9 @@ export default function Home() {
   const [walkerSpawnPos, setWalkerSpawnPos] = useState<THREE.Vector3 | null>(null)
   const [parkedBoatPos, setParkedBoatPos] = useState<THREE.Vector3 | null>(null)
   const [walkerPos, setWalkerPos] = useState<THREE.Vector3 | null>(null)
+  const [hasTreasureMap, setHasTreasureMap] = useState(false)
+  const [treasureCompass, setTreasureCompass] = useState<{ angle: number; distance: number } | null>(null)
+  const [treasureLoot, setTreasureLoot] = useState<TreasureLoot | null>(null)
   const [marketMultiplier, setMarketMultiplier] = useState(() => {
     const multipliers = [0.8, 1.0, 1.0, 1.2, 1.5, 2.0]
     return multipliers[Math.floor(Math.random() * multipliers.length)]
@@ -122,6 +125,7 @@ export default function Home() {
     const port = getNearestPort(pos)
     setNearPort(!!port)
     setBoatPos(pos.clone())
+    if (forward) setBoatForward(forward.clone())
 
     // Find closest port for compass
     const closest = getNearestPort(pos, 999)
@@ -179,11 +183,12 @@ export default function Home() {
     setTimeout(() => setPirateWarning(false), 3000)
   }, [])
 
-  const handleTreasureCollect = useCallback((value: number) => {
-    setCoins(prev => prev + value)
-    setSellMessage(`Found treasure! +${value} coins!`)
-    playCoinJingle()
-    setTimeout(() => setSellMessage(null), 2500)
+  const handleTreasureCollect = useCallback((loot: TreasureLoot) => {
+    setCoins(prev => prev + loot.value)
+    setTreasureLoot(loot)
+    setHasTreasureMap(false)
+    setTreasureCompass(null)
+    setTimeout(() => setTreasureLoot(null), 3500)
   }, [])
 
   const handleSell = useCallback(() => {
@@ -304,23 +309,18 @@ export default function Home() {
             onCaught={handlePirateCaught}
             onActiveChange={handlePirateActive}
           />
-          <TreasureChests boatPosition={boatPos} onCollect={handleTreasureCollect} />
+          <TreasureChest
+            active={hasTreasureMap}
+            boatPosition={boatPos}
+            boatForward={boatForward}
+            onCollect={handleTreasureCollect}
+            onCompassUpdate={(angle, distance) => setTreasureCompass({ angle, distance })}
+          />
           <PortCompassUpdater onAngleUpdate={(a) => setPortDirection(prev => prev ? { ...prev, angle: a } : null)} />
           </>
         ) : mode === 'walk' ? (
           <>
-          <Walker spawnPosition={walkerSpawnPos} onPositionUpdate={setWalkerPos} onChopTree={() => {
-            // Give wood to cargo
-            const maxCargo = BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo
-            if (catches.length < maxCargo) {
-              handleCatch({ name: 'Wood', emoji: '🪵', rarity: 'common', value: 6, rodLevel: 1 })
-            }
-          }} />
-          <LandResources
-            walkerPosition={walkerPos}
-            onCollect={handleCatch}
-            cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo}
-          />
+          <Walker spawnPosition={walkerSpawnPos} onPositionUpdate={setWalkerPos} />
           {parkedBoatPos && <ParkedBoat position={parkedBoatPos} boatLevel={boatOwned} />}
           </>
         ) : (
@@ -344,7 +344,7 @@ export default function Home() {
           backdropFilter: 'blur(8px)',
           textAlign: 'center',
         }}>
-          {mode === 'fly' ? 'WASD to steer · W/S for speed' : mode === 'walk' ? 'WASD to walk · Shift to sprint · E to collect · T to chop · G to board boat' : 'A/D to steer · W/S for speed · F to fish · G to disembark near shore'}
+          {mode === 'fly' ? 'WASD to steer · W/S for speed' : mode === 'walk' ? 'WASD to walk · Shift to sprint · G to board boat' : 'A/D to steer · W/S for speed · F to fish · G to disembark near shore'}
         </div>
       )}
 
@@ -597,6 +597,62 @@ export default function Home() {
                 fontSize: 14,
               }}>⬆</span>
               <span>🐟 Fish</span>
+            </div>
+          )}
+
+          {/* Treasure compass */}
+          {hasTreasureMap && treasureCompass && (
+            <div style={{
+              position: 'absolute',
+              top: pirateActive ? 180 : (fishDirection && fishDirection.distance > 0.3 ? 140 : (!nearPort && portDirection ? 100 : 60)),
+              right: 20,
+              background: 'rgba(60,40,0,0.8)',
+              borderRadius: 10,
+              padding: '6px 10px',
+              color: '#ffd700',
+              fontSize: 12,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              border: '1px solid rgba(255,215,0,0.3)',
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: 18,
+                height: 18,
+                lineHeight: '18px',
+                textAlign: 'center',
+                transform: `rotate(${treasureCompass.angle}rad)`,
+                fontSize: 14,
+              }}>⬆</span>
+              <span>🗺️ Treasure</span>
+            </div>
+          )}
+
+          {/* Treasure loot popup */}
+          {treasureLoot && (
+            <div style={{
+              position: 'absolute',
+              top: '35%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: treasureLoot.value > 0 ? 'rgba(40,30,0,0.95)' : 'rgba(30,30,30,0.95)',
+              borderRadius: 14,
+              padding: '20px 30px',
+              color: 'white',
+              fontSize: 18,
+              fontFamily: 'system-ui, sans-serif',
+              backdropFilter: 'blur(8px)',
+              textAlign: 'center',
+              border: treasureLoot.value >= 300 ? '2px solid gold' : treasureLoot.value > 0 ? '1px solid rgba(255,215,0,0.4)' : '1px solid rgba(100,100,100,0.4)',
+            }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>{treasureLoot.emoji}</div>
+              <div style={{ fontWeight: 'bold' }}>{treasureLoot.name}</div>
+              <div style={{ fontSize: 14, marginTop: 6, color: treasureLoot.value > 0 ? '#ffd700' : '#888' }}>
+                {treasureLoot.value > 0 ? `+${treasureLoot.value} coins!` : 'Worth nothing...'}
+              </div>
             </div>
           )}
 
@@ -853,6 +909,48 @@ export default function Home() {
                   </div>
                 )
               })}
+
+              {/* Treasure Map */}
+              <div style={{ fontSize: 11, opacity: 0.5, marginTop: 14, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>🗺️ Treasure</div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 10px',
+                marginBottom: 6,
+                borderRadius: 8,
+                background: hasTreasureMap ? 'rgba(0,100,0,0.3)' : 'rgba(100,80,0,0.3)',
+                border: hasTreasureMap ? '1px solid rgba(0,255,0,0.3)' : '1px solid rgba(255,200,0,0.4)',
+              }}>
+                <div>
+                  <div style={{ fontWeight: 'bold' }}>Treasure Map</div>
+                  <div style={{ fontSize: 11, opacity: 0.6 }}>Reveals a hidden chest. Risky but rewarding.</div>
+                </div>
+                {hasTreasureMap ? (
+                  <span style={{ fontSize: 11, color: '#44ff44' }}>Active</span>
+                ) : (
+                  <button
+                    onClick={() => {
+                      if (coins >= TREASURE_MAP_COST) {
+                        setCoins(prev => prev - TREASURE_MAP_COST)
+                        setHasTreasureMap(true)
+                      }
+                    }}
+                    style={{
+                      background: coins >= TREASURE_MAP_COST ? '#cc8800' : '#555',
+                      border: 'none',
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      color: 'white',
+                      fontSize: 12,
+                      cursor: coins >= TREASURE_MAP_COST ? 'pointer' : 'not-allowed',
+                      opacity: coins >= TREASURE_MAP_COST ? 1 : 0.5,
+                    }}
+                  >
+                    🪙 {TREASURE_MAP_COST}
+                  </button>
+                )}
+              </div>
               </div>
             </div>
           )}
@@ -905,7 +1003,7 @@ export default function Home() {
       {/* Walk mode UI */}
       {mode === 'walk' && (
         <>
-          {/* Coins + cargo */}
+          {/* Coins */}
           <div style={{
             position: 'absolute',
             top: 20,
@@ -922,52 +1020,7 @@ export default function Home() {
             alignItems: 'center',
           }}>
             <span>🪙 {coins}</span>
-            {catches.length > 0 && <span>🎒 {catches.length}/{BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo}</span>}
           </div>
-
-          {/* Last collect popup */}
-          {lastCatch && (
-            <div style={{
-              position: 'absolute',
-              top: '40%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: 'rgba(0,0,0,0.8)',
-              borderRadius: 14,
-              padding: '16px 24px',
-              color: 'white',
-              fontSize: 18,
-              fontFamily: 'system-ui, sans-serif',
-              backdropFilter: 'blur(8px)',
-              textAlign: 'center',
-              border: '1px solid rgba(255,255,255,0.2)',
-            }}>
-              <div style={{ fontSize: 32, marginBottom: 4 }}>{lastCatch.emoji}</div>
-              <div>{lastCatch.name}</div>
-              <div style={{ fontSize: 11, marginTop: 4, color: '#aaa' }}>🪙 {lastCatch.value}</div>
-            </div>
-          )}
-
-          {/* Sell message */}
-          {sellMessage && (
-            <div style={{
-              position: 'absolute',
-              top: '35%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              background: 'rgba(0,80,0,0.9)',
-              borderRadius: 14,
-              padding: '14px 24px',
-              color: '#44ff44',
-              fontSize: 16,
-              fontFamily: 'system-ui, sans-serif',
-              backdropFilter: 'blur(8px)',
-              textAlign: 'center',
-              border: '1px solid #44ff44',
-            }}>
-              🪙 {sellMessage}
-            </div>
-          )}
         </>
       )}
 

@@ -361,8 +361,10 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
     // --- WAKE PARTICLES ---
     // Only emit if actually moving
     if (s.speed > 0.03) {
+      // Position wake at water level (below boat)
+      const wakePos = finalUp.clone().multiplyScalar(s.altitude - 0.04)
       const leftIdx = (s.wakeIndex * 2) % 180
-      const leftStern = position.clone()
+      const leftStern = wakePos.clone()
         .add(finalRight.clone().multiplyScalar(-0.035))
         .add(finalForward.clone().multiplyScalar(-0.08))
       s.wakePositions[leftIdx * 3] = leftStern.x
@@ -371,7 +373,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
       s.wakeAlphas[leftIdx] = 1.0
 
       const rightIdx = (s.wakeIndex * 2 + 1) % 180
-      const rightStern = position.clone()
+      const rightStern = wakePos.clone()
         .add(finalRight.clone().multiplyScalar(0.035))
         .add(finalForward.clone().multiplyScalar(-0.08))
       s.wakePositions[rightIdx * 3] = rightStern.x

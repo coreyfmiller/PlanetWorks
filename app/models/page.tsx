@@ -83,6 +83,7 @@ export default function ModelsPage() {
 
       <Section title="Structures">
         <ModelViewer path="/models/port.glb" label="Port / Harbor" description="Wooden pier, lighthouse, fish market shack, crates and barrels. (42MB, may take time to load)" scale={1} />
+        <ModelViewer path="/models/treasure-chest.glb" label="Treasure Chest" description="Low-poly pirate chest with gold coins. Spawns on beaches." scale={1} />
       </Section>
 
       <Section title="Characters">
