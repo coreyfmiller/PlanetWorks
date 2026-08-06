@@ -77,6 +77,7 @@ export function Walker({ spawnPosition, onPositionUpdate }: {
         const up = spawnPosition.clone().normalize()
         return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
       }
+      // Find a beach/open area to spawn (lower influence = closer to shore = fewer trees)
       for (let i = 0; i < 500; i++) {
         const phi = Math.acos(1 - 2 * (i + 0.5) / 500)
         const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5)
@@ -84,7 +85,8 @@ export function Walker({ spawnPosition, onPositionUpdate }: {
         const ny = Math.cos(phi)
         const nz = Math.sin(phi) * Math.sin(theta)
         const { influence } = islandInfluence(nx, ny, nz, true)
-        if (influence > 0.3) {
+        // Prefer beach/low terrain (0.1-0.2) where trees don't spawn
+        if (influence > 0.1 && influence < 0.2) {
           const up = new THREE.Vector3(nx, ny, nz).normalize()
           return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
         }

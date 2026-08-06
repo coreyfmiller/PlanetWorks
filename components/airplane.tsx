@@ -4,6 +4,7 @@ import { useRef, useEffect, forwardRef, useImperativeHandle, useMemo } from 'rea
 import { useFrame, useThree } from '@react-three/fiber'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { getGameInput } from '@/components/touch-controls'
 
 /**
  * Flight model: the plane's state is ONE quaternion.
@@ -63,25 +64,32 @@ export function Airplane({ trail = true }: { trail?: boolean }) {
     // --- INPUT ---
     let targetBank = 0
     let targetPitch = 0
+    const touch = getGameInput()
 
     // Turn: rotate around LOCAL Y axis
     const turnRate = 1.2 * dt
-    if (keys['KeyA'] || keys['ArrowLeft']) {
-      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turnRate)
+    const turnLeft = keys['KeyA'] || keys['ArrowLeft'] || touch.turn < -0.2
+    const turnRight = keys['KeyD'] || keys['ArrowRight'] || touch.turn > 0.2
+    if (turnLeft) {
+      const amount = touch.turn < -0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), amount)
       s.quat.multiply(turnQ)
       targetBank = 0.4
     }
-    if (keys['KeyD'] || keys['ArrowRight']) {
-      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turnRate)
+    if (turnRight) {
+      const amount = touch.turn > 0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -amount)
       s.quat.multiply(turnQ)
       targetBank = -0.4
     }
 
     // Speed
-    if (keys['KeyW'] || keys['ArrowUp']) {
+    const goForward = keys['KeyW'] || keys['ArrowUp'] || touch.forward > 0.2
+    const goBack = keys['KeyS'] || keys['ArrowDown'] || touch.forward < -0.2
+    if (goForward) {
       s.speed = Math.min(s.speed + dt * 0.4, 1.5)
     }
-    if (keys['KeyS'] || keys['ArrowDown']) {
+    if (goBack) {
       s.speed = Math.max(s.speed - dt * 0.4, 0.15)
     }
 
