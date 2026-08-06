@@ -1255,7 +1255,7 @@ function ParkedBoat({ position, boatLevel }: { position: THREE.Vector3; boatLeve
   const up = position.clone().normalize()
   const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
   // Lift boat up along surface normal to sit on water
-  const liftedPos = position.clone().add(up.multiplyScalar(0.12))
+  const liftedPos = position.clone().add(up.multiplyScalar(0.06))
 
   return (
     <primitive
