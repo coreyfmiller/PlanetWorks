@@ -207,8 +207,7 @@ export default function Home() {
     setTimeout(() => setSellMessage(null), 2500)
   }, [catches, marketMultiplier])
 
-  // E key to sell at port + G key disembark/embark + touch action2 disembark
-  const lastAction2 = useRef(false)
+  // E key to sell at port + G key disembark/embark
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'KeyE' && nearPort && catches.length > 0) {
@@ -223,17 +222,8 @@ export default function Home() {
     return () => window.removeEventListener('keydown', onKey)
   }, [nearPort, catches, handleSell, mode, boatPos, parkedBoatPos, walkerPos])
 
-  // Poll touch action2 for disembark
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const touch = getGameInput()
-      if (touch.action2 && !lastAction2.current) {
-        handleDisembark()
-      }
-      lastAction2.current = touch.action2
-    }, 100)
-    return () => clearInterval(interval)
-  }, [mode, boatPos, parkedBoatPos, walkerPos])
+  // Poll touch action2 - no longer needed, handled by TouchControls callbacks
+  
 
   const handleDisembark = useCallback(() => {
     if (mode === 'boat' && boatPos) {
@@ -1043,9 +1033,17 @@ export default function Home() {
           mode={mode}
           onModeChange={setMode}
           nearPort={nearPort}
+          nearShore={!!(boatPos && (() => {
+            const d = boatPos.clone().normalize()
+            const { influence } = islandInfluence(d.x, d.y, d.z, true)
+            return influence > 0.02
+          })())}
+          nearBoat={!!(parkedBoatPos && walkerPos && walkerPos.distanceTo(parkedBoatPos) < 0.8)}
           hasFish={catches.length > 0}
           onSell={handleSell}
           onShop={() => setShowShop(true)}
+          onDisembark={handleDisembark}
+          onBoard={handleDisembark}
         />
       )}
 
@@ -1075,18 +1073,32 @@ export default function Home() {
           <ModeButton label="🚶" active={mode === 'walk'} onClick={() => {
             // When entering walk directly, spawn a boat near the walker spawn point
             if (mode !== 'walk' && !parkedBoatPos) {
-              // Find a water spot near shore for the parked boat
+              // Walker spawns at influence 0.1-0.2. Find nearby water (influence 0.01-0.05)
               for (let i = 0; i < 500; i++) {
                 const phi = Math.acos(1 - 2 * (i + 0.5) / 500)
-                const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5) + 1.0 // offset from walker spawn
+                const theta = Math.PI * (1 + Math.sqrt(5)) * (i + 0.5)
                 const nx = Math.sin(phi) * Math.cos(theta)
                 const ny = Math.cos(phi)
                 const nz = Math.sin(phi) * Math.sin(theta)
                 const { influence } = islandInfluence(nx, ny, nz, true)
-                // Just offshore (very low influence = water near land)
-                if (influence > 0.01 && influence < 0.08) {
-                  const pos = new THREE.Vector3(nx, ny, nz).normalize().multiplyScalar(3.0)
-                  setParkedBoatPos(pos)
+                // Beach area where walker spawns
+                if (influence > 0.1 && influence < 0.2) {
+                  // Step outward from this point to find water
+                  const landDir = new THREE.Vector3(nx, ny, nz).normalize()
+                  for (let j = 1; j <= 20; j++) {
+                    // Sample points moving away from land center
+                    const angle = j * 0.01
+                    const testQ = new THREE.Quaternion().setFromAxisAngle(
+                      new THREE.Vector3(1, 0, 0).cross(landDir).normalize(),
+                      angle
+                    )
+                    const testDir = landDir.clone().applyQuaternion(testQ).normalize()
+                    const { influence: testInf } = islandInfluence(testDir.x, testDir.y, testDir.z, true)
+                    if (testInf < 0.03 && testInf >= 0) {
+                      setParkedBoatPos(testDir.multiplyScalar(3.0))
+                      break
+                    }
+                  }
                   break
                 }
               }

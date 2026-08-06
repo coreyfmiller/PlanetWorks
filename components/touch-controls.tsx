@@ -173,22 +173,30 @@ interface TouchControlsProps {
   mode: 'globe' | 'fly' | 'boat' | 'walk'
   onModeChange: (mode: 'globe' | 'fly' | 'boat' | 'walk') => void
   nearPort: boolean
+  nearShore: boolean
+  nearBoat: boolean
   hasFish: boolean
   onSell: () => void
   onShop: () => void
+  onDisembark: () => void
+  onBoard: () => void
 }
 
-export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, onShop }: TouchControlsProps) {
-  const sprintRef = useRef(false)
+export function TouchControls({ mode, onModeChange, nearPort, nearShore, nearBoat, hasFish, onSell, onShop, onDisembark, onBoard }: TouchControlsProps) {
+  const [message, setMessage] = useState<string | null>(null)
 
   const handleJoystickMove = useCallback((x: number, y: number) => {
-    // y negative = forward (touch up = move forward), x positive = turn right
     setGameInput({ forward: -y, turn: x })
   }, [])
 
   const handleJoystickRelease = useCallback(() => {
     setGameInput({ forward: 0, turn: 0 })
   }, [])
+
+  const showMessage = (msg: string) => {
+    setMessage(msg)
+    setTimeout(() => setMessage(null), 2000)
+  }
 
   return (
     <>
@@ -197,30 +205,55 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
         <VirtualJoystick side="left" onMove={handleJoystickMove} onRelease={handleJoystickRelease} />
       )}
 
+      {/* Feedback message */}
+      {message && (
+        <div style={{
+          position: 'absolute',
+          top: '40%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0,0,0,0.8)',
+          borderRadius: 10,
+          padding: '10px 18px',
+          color: 'white',
+          fontSize: 14,
+          fontFamily: 'system-ui, sans-serif',
+          zIndex: 2000,
+          textAlign: 'center',
+        }}>
+          {message}
+        </div>
+      )}
+
       {/* Right side action buttons */}
       {mode === 'boat' && (
         <div style={{ position: 'absolute', bottom: 80, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" size={46} />
           {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" size={46} />}
           {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" size={46} />}
-          <ActionButton label="🚶" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(100,60,0,0.4)" size={46} />
-          <ActionButton
-            label="🏃"
-            onPress={() => { sprintRef.current = true; setGameInput({ sprint: true }) }}
-            onRelease={() => { sprintRef.current = false; setGameInput({ sprint: false }) }}
-            color="rgba(200,100,0,0.3)"
-            size={46}
-          />
+          <ActionButton label="⚓" onPress={() => {
+            if (nearShore) {
+              onDisembark()
+            } else {
+              showMessage('Too far from shore')
+            }
+          }} color="rgba(100,60,0,0.4)" size={46} />
         </div>
       )}
 
       {mode === 'walk' && (
         <div style={{ position: 'absolute', bottom: 80, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <ActionButton label="⛵" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(0,100,200,0.4)" size={46} />
+          <ActionButton label="⛵" onPress={() => {
+            if (nearBoat) {
+              onBoard()
+            } else {
+              showMessage('Too far from boat')
+            }
+          }} color="rgba(0,100,200,0.4)" size={46} />
           <ActionButton
             label="🏃"
-            onPress={() => { sprintRef.current = true; setGameInput({ sprint: true }) }}
-            onRelease={() => { sprintRef.current = false; setGameInput({ sprint: false }) }}
+            onPress={() => { setGameInput({ sprint: true }) }}
+            onRelease={() => { setGameInput({ sprint: false }) }}
             color="rgba(200,100,0,0.3)"
             size={46}
           />
