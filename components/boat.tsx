@@ -123,19 +123,26 @@ interface BoatProps {
   speedLevel?: number
   baitLevel?: number
   cargoFull?: boolean
+  spawnPosition?: THREE.Vector3 | null
   onCatch?: (fish: FishCatch) => void
   onFishingState?: (state: FishingState | 'holdfull') => void
   onPositionUpdate?: (pos: THREE.Vector3, forward?: THREE.Vector3) => void
 }
 
-export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1, cargoFull = false, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
+export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1, cargoFull = false, spawnPosition, onCatch, onFishingState, onPositionUpdate }: BoatProps) {
   const groupRef = useRef<THREE.Group>(null)
   const bobberRef = useRef<THREE.Group>(null)
   const wakeRef = useRef<THREE.Points>(null)
   const { camera } = useThree()
 
   const state = useRef({
-    quat: new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.4),
+    quat: (() => {
+      if (spawnPosition) {
+        const up = spawnPosition.clone().normalize()
+        return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), up)
+      }
+      return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI * 0.4)
+    })(),
     altitude: 3.04,
     speed: 0.15,
     bank: 0,

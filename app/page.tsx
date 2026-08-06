@@ -83,6 +83,7 @@ export default function Home() {
   const [walkerSpawnPos, setWalkerSpawnPos] = useState<THREE.Vector3 | null>(null)
   const [parkedBoatPos, setParkedBoatPos] = useState<THREE.Vector3 | null>(null)
   const [walkerPos, setWalkerPos] = useState<THREE.Vector3 | null>(null)
+  const [boatSpawnPos, setBoatSpawnPos] = useState<THREE.Vector3 | null>(null)
   const [hasTreasureMap, setHasTreasureMap] = useState(false)
   const [treasureCompass, setTreasureCompass] = useState<{ angle: number; distance: number } | null>(null)
   const [treasureLoot, setTreasureLoot] = useState<TreasureLoot | null>(null)
@@ -245,6 +246,7 @@ export default function Home() {
       }
     } else if (mode === 'walk') {
       if (parkedBoatPos && walkerPos && walkerPos.distanceTo(parkedBoatPos) < 0.8) {
+        setBoatSpawnPos(parkedBoatPos.clone())
         setParkedBoatPos(null)
         setMode('boat')
       }
@@ -304,7 +306,7 @@ export default function Home() {
           <Airplane trail={planeTrail} />
         ) : mode === 'boat' ? (
           <>
-          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} baitLevel={baitLevel} cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo} />
+          <Boat onCatch={handleCatch} onFishingState={handleFishingState} onPositionUpdate={handlePositionUpdate} rodLevel={rodLevel} speedLevel={boatSpeed} baitLevel={baitLevel} cargoFull={catches.length >= BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].cargo} spawnPosition={boatSpawnPos} />
           <PirateShip
             boatPosition={boatPos}
             boatMaxSpeed={BOAT_SPEEDS[Math.min(boatSpeed, BOAT_SPEEDS.length) - 1].maxSpeed}
