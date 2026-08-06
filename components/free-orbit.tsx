@@ -19,7 +19,7 @@ export function FreeOrbit({ minDistance = 4.5, maxDistance = 25 }: { minDistance
     prevY: 0,
     velocityX: 0,
     velocityY: 0,
-    distance: 8,
+    distance: 14,
     // The globe's rotation as a quaternion
     rotation: new THREE.Quaternion(),
   })
