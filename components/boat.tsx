@@ -469,8 +469,7 @@ function BoatModel({ level }: { level: number }) {
   const path = paths[Math.min(level, paths.length) - 1]
   const yOffset = offsets[Math.min(level, offsets.length) - 1]
   const { scene } = useGLTF(path)
-  const cloned = useMemo(() => scene.clone(), [scene])
-  return <primitive object={cloned} scale={0.16} rotation={[0, Math.PI / 2, 0]} position={[0, yOffset, 0]} />
+  return <primitive object={scene} scale={0.16} rotation={[0, Math.PI / 2, 0]} position={[0, yOffset, 0]} />
 }
 
 function BoatCharacter() {
