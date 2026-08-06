@@ -228,7 +228,7 @@ export function TouchControls({ mode, onModeChange, nearPort, nearShore, nearBoa
       {/* Right side action buttons */}
       {mode === 'boat' && (
         <div style={{ position: 'absolute', bottom: 80, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" size={46} />
+          <ActionButton label="🎣" onPress={() => { setGameInput({ action1: true }); setTimeout(() => setGameInput({ action1: false }), 100) }} color="rgba(0,100,200,0.4)" size={46} />
           {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" size={46} />}
           {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" size={46} />}
           <ActionButton label="⚓" onPress={() => {
