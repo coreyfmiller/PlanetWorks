@@ -515,8 +515,8 @@ function BoatCharacter() {
     if (mixerRef.current) mixerRef.current.update(Math.min(delta, 0.05))
   })
 
-  // Position character sitting in the boat (slightly above deck, centered)
-  return <group ref={groupRef} position={[0, 0.06, 0]} />
+  // Position character sitting in the boat (on deck level)
+  return <group ref={groupRef} position={[0, 0.01, 0]} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
