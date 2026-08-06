@@ -438,7 +438,7 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
     <>
     <group ref={groupRef}>
       <BoatModel level={speedLevel} />
-      <BoatCharacter />
+      <BoatCharacter level={speedLevel} />
     </group>
 
     {/* Bobber */}
@@ -465,14 +465,14 @@ function BoatModel({ level }: { level: number }) {
     '/models/boat-canvas.glb',
     '/models/boat-racing.glb',
   ]
-  const offsets = [0.05, 0.05, 0.02]
+  const offsets = [0.05, 0.05, 0.05]
   const path = paths[Math.min(level, paths.length) - 1]
   const yOffset = offsets[Math.min(level, offsets.length) - 1]
   const { scene } = useGLTF(path)
   return <primitive object={scene} scale={0.16} rotation={[0, Math.PI / 2, 0]} position={[0, yOffset, 0]} />
 }
 
-function BoatCharacter() {
+function BoatCharacter({ level }: { level: number }) {
   const groupRef = useRef<THREE.Group>(null)
   const { scene, animations } = useGLTF('/models/character-cartoon-sitting.glb')
   const mixerRef = useRef<THREE.AnimationMixer | null>(null)
@@ -515,8 +515,10 @@ function BoatCharacter() {
     if (mixerRef.current) mixerRef.current.update(Math.min(delta, 0.05))
   })
 
-  // Position character sitting in the boat (on deck level)
-  return <group ref={groupRef} position={[0, -0.02, 0]} />
+  // Position character per boat type (racing boat sits lower)
+  const charOffsets = [-0.02, -0.02, -0.05]
+  const yPos = charOffsets[Math.min(level, charOffsets.length) - 1]
+  return <group ref={groupRef} position={[0, yPos, 0]} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
