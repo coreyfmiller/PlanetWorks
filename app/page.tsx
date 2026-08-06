@@ -15,6 +15,7 @@ import { AmbientAudio } from '@/components/audio'
 import { getNearestPort, getPorts, PortDocks } from '@/components/ports'
 import { getNearestFishSchool } from '@/components/fish-schools'
 import { playSplash, playCatch, playMiss, playCoinJingle } from '@/components/sfx'
+import { TouchControls, useIsTouchDevice } from '@/components/touch-controls'
 import * as THREE from 'three'
 
 type Mode = 'globe' | 'fly' | 'boat' | 'walk'
@@ -24,6 +25,7 @@ export default function Home() {
   const [waves, setWaves] = useState(true)
   const [atmosphere, setAtmosphere] = useState(true)
   const [mode, setMode] = useState<Mode>('globe')
+  const isTouch = useIsTouchDevice()
 
   // Fishing
   const [fishingState, setFishingState] = useState<string>('idle')
@@ -264,7 +266,7 @@ export default function Home() {
   const [expanded, setExpanded] = useState(false)
 
   return (
-    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', touchAction: 'none' }}>
       <AmbientAudio flyMode={mode !== 'globe'} />
       <Canvas camera={{ position: [0, 3, 8], fov: 50 }}>
         <Sky />
@@ -328,8 +330,8 @@ export default function Home() {
         )}
       </Canvas>
 
-      {/* Mode hint */}
-      {mode !== 'globe' && (
+      {/* Mode hint - desktop only */}
+      {mode !== 'globe' && !isTouch && (
         <div style={{
           position: 'absolute',
           top: 20,
@@ -1024,7 +1026,19 @@ export default function Home() {
         </>
       )}
 
-      {/* Control panel */}
+      {/* Touch controls - mobile only */}
+      {isTouch && (
+        <TouchControls
+          mode={mode}
+          onModeChange={setMode}
+          nearPort={nearPort}
+          hasFish={catches.length > 0}
+          onSell={handleSell}
+          onShop={() => setShowShop(true)}
+        />
+      )}
+
+      {/* Control panel - desktop only */}
       <div style={{
         position: 'absolute',
         bottom: 20,
@@ -1032,7 +1046,7 @@ export default function Home() {
         background: 'rgba(0,0,0,0.7)',
         borderRadius: 14,
         padding: '14px 18px',
-        display: 'flex',
+        display: isTouch ? 'none' : 'flex',
         flexDirection: 'column',
         gap: 8,
         color: 'white',

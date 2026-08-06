@@ -6,6 +6,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
 import { fbmSimplex } from '@/lib/simplex'
+import { getGameInput } from '@/components/touch-controls'
 
 /**
  * Walk mode with animation blending (idle + walk).
@@ -133,23 +134,31 @@ export function Walker({ spawnPosition, onPositionUpdate }: {
     if (mixerRef.current) mixerRef.current.update(dt)
 
     // Turn
+    const touch = getGameInput()
     const turnRate = 2.0 * dt
-    if (keys['KeyA'] || keys['ArrowLeft']) {
-      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turnRate)
+    const turnLeft = keys['KeyA'] || keys['ArrowLeft'] || touch.turn < -0.2
+    const turnRight = keys['KeyD'] || keys['ArrowRight'] || touch.turn > 0.2
+    if (turnLeft) {
+      const amount = touch.turn < -0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), amount)
       s.quat.multiply(turnQ)
     }
-    if (keys['KeyD'] || keys['ArrowRight']) {
-      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turnRate)
+    if (turnRight) {
+      const amount = touch.turn > 0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+      const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -amount)
       s.quat.multiply(turnQ)
     }
 
     // Speed
-    const sprinting = keys['ShiftLeft'] || keys['ShiftRight']
+    const sprinting = keys['ShiftLeft'] || keys['ShiftRight'] || touch.sprint
+    const goForward = keys['KeyW'] || keys['ArrowUp'] || touch.forward > 0.2
+    const goBack = keys['KeyS'] || keys['ArrowDown'] || touch.forward < -0.2
     const maxSpeed = sprinting ? 1.0 : 0.4
     const accel = sprinting ? 1.6 : 0.8
-    if (keys['KeyW'] || keys['ArrowUp']) {
-      s.speed = Math.min(s.speed + dt * accel, maxSpeed)
-    } else if (keys['KeyS'] || keys['ArrowDown']) {
+    if (goForward) {
+      const touchAccel = touch.forward > 0.2 ? accel * touch.forward : accel
+      s.speed = Math.min(s.speed + dt * touchAccel, maxSpeed)
+    } else if (goBack) {
       s.speed = Math.max(s.speed - dt * 0.8, -0.15)
     } else {
       s.speed *= 0.9

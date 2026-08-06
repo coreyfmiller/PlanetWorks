@@ -6,6 +6,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { islandInfluence } from '@/components/planet'
 import { getNearestFishSchool, consumeFishFromSchool } from '@/components/fish-schools'
+import { getGameInput } from '@/components/touch-controls'
 
 export interface FishCatch {
   name: string
@@ -176,9 +177,10 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
     const s = state.current
     const keys = s.keys
     const dt = Math.min(delta, 0.05)
+    const touch = getGameInput()
 
     // --- FISHING STATE MACHINE ---
-    if (s.justPressed) {
+    if (s.justPressed || touch.action1) {
       s.justPressed = false
 
       if (s.fishing === 'idle') {
@@ -259,21 +261,29 @@ export function Boat({ wake = true, rodLevel = 1, speedLevel = 1, baitLevel = 1,
     const turnRate = 1.6 * dt
 
     if (canMove) {
-      if (keys['KeyA'] || keys['ArrowLeft']) {
-        const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), turnRate)
+      const turnLeft = keys['KeyA'] || keys['ArrowLeft'] || touch.turn < -0.2
+      const turnRight = keys['KeyD'] || keys['ArrowRight'] || touch.turn > 0.2
+      const goForward = keys['KeyW'] || keys['ArrowUp'] || touch.forward > 0.2
+      const goBack = keys['KeyS'] || keys['ArrowDown'] || touch.forward < -0.2
+
+      if (turnLeft) {
+        const amount = touch.turn < -0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+        const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), amount)
         s.quat.multiply(turnQ)
         targetBank = 0.15
       }
-      if (keys['KeyD'] || keys['ArrowRight']) {
-        const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turnRate)
+      if (turnRight) {
+        const amount = touch.turn > 0.2 ? turnRate * Math.abs(touch.turn) : turnRate
+        const turnQ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -amount)
         s.quat.multiply(turnQ)
         targetBank = -0.15
       }
-      if (keys['KeyW'] || keys['ArrowUp']) {
+      if (goForward) {
         const maxSpeed = BOAT_SPEEDS[Math.min(speedLevel, BOAT_SPEEDS.length) - 1].maxSpeed
-        s.speed = Math.min(s.speed + dt * 0.2, maxSpeed)
+        const accel = touch.forward > 0.2 ? dt * 0.2 * touch.forward : dt * 0.2
+        s.speed = Math.min(s.speed + accel, maxSpeed)
       }
-      if (keys['KeyS'] || keys['ArrowDown']) {
+      if (goBack) {
         s.speed = Math.max(s.speed - dt * 0.2, 0.05)
       }
     } else {
