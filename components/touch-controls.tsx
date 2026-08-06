@@ -107,10 +107,10 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
       ref={baseRef}
       style={{
         position: 'absolute',
-        bottom: 30,
-        [side]: 30,
-        width: 120,
-        height: 120,
+        bottom: 10,
+        [side]: 10,
+        width: 100,
+        height: 100,
         borderRadius: '50%',
         background: 'rgba(255,255,255,0.15)',
         border: '2px solid rgba(255,255,255,0.4)',
@@ -122,8 +122,8 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
       }}
     >
       <div style={{
-        width: 50,
-        height: 50,
+        width: 42,
+        height: 42,
         borderRadius: '50%',
         background: active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
         transform: `translate(${pos.x}px, ${pos.y}px)`,
@@ -199,27 +199,29 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
 
       {/* Right side action buttons */}
       {mode === 'boat' && (
-        <div style={{ position: 'absolute', bottom: 30, right: 30, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" />
-          {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" />}
-          {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" />}
+        <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ActionButton label="🎣" onPress={() => setGameInput({ action1: true })} onRelease={() => setGameInput({ action1: false })} color="rgba(0,100,200,0.4)" size={46} />
+          {nearPort && <ActionButton label="💰" onPress={onSell} color="rgba(0,150,0,0.4)" size={46} />}
+          {nearPort && <ActionButton label="🏪" onPress={onShop} color="rgba(150,100,0,0.4)" size={46} />}
           <ActionButton
             label="🏃"
             onPress={() => { sprintRef.current = true; setGameInput({ sprint: true }) }}
             onRelease={() => { sprintRef.current = false; setGameInput({ sprint: false }) }}
             color="rgba(200,100,0,0.3)"
+            size={46}
           />
         </div>
       )}
 
       {mode === 'walk' && (
-        <div style={{ position: 'absolute', bottom: 30, right: 30, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <ActionButton label="⛵" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(0,100,200,0.4)" />
+        <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <ActionButton label="⛵" onPress={() => setGameInput({ action2: true })} onRelease={() => setGameInput({ action2: false })} color="rgba(0,100,200,0.4)" size={46} />
           <ActionButton
             label="🏃"
             onPress={() => { sprintRef.current = true; setGameInput({ sprint: true }) }}
             onRelease={() => { sprintRef.current = false; setGameInput({ sprint: false }) }}
             color="rgba(200,100,0,0.3)"
+            size={46}
           />
         </div>
       )}
