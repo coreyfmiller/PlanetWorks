@@ -182,8 +182,8 @@ export function TouchControls({ mode, onModeChange, nearPort, hasFish, onSell, o
   const sprintRef = useRef(false)
 
   const handleJoystickMove = useCallback((x: number, y: number) => {
-    // y negative = forward (touch up = move forward)
-    setGameInput({ forward: -y, turn: -x })
+    // y negative = forward (touch up = move forward), x positive = turn right
+    setGameInput({ forward: -y, turn: x })
   }, [])
 
   const handleJoystickRelease = useCallback(() => {
