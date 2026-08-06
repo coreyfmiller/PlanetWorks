@@ -38,57 +38,73 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
   const touchId = useRef<number | null>(null)
   const center = useRef({ x: 0, y: 0 })
 
-  const handleStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    if (touchId.current !== null) return
-    const touch = e.changedTouches[0]
-    touchId.current = touch.identifier
-    const rect = baseRef.current!.getBoundingClientRect()
-    center.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
-    setActive(true)
-    setPos({ x: 0, y: 0 })
-  }, [])
+  useEffect(() => {
+    const el = baseRef.current
+    if (!el) return
 
-  const handleMove = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    if (touchId.current === null) return
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i]
-      if (touch.identifier === touchId.current) {
-        const dx = touch.clientX - center.current.x
-        const dy = touch.clientY - center.current.y
-        const maxDist = 40
-        const dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxDist)
-        const angle = Math.atan2(dy, dx)
-        const nx = (Math.cos(angle) * dist) / maxDist
-        const ny = (Math.sin(angle) * dist) / maxDist
-        setPos({ x: nx * 30, y: ny * 30 })
-        onMove(nx, ny)
-        break
+    const handleStart = (e: TouchEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (touchId.current !== null) return
+      const touch = e.changedTouches[0]
+      touchId.current = touch.identifier
+      const rect = el.getBoundingClientRect()
+      center.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      setActive(true)
+      setPos({ x: 0, y: 0 })
+    }
+
+    const handleMove = (e: TouchEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (touchId.current === null) return
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i]
+        if (touch.identifier === touchId.current) {
+          const dx = touch.clientX - center.current.x
+          const dy = touch.clientY - center.current.y
+          const maxDist = 40
+          const dist = Math.min(Math.sqrt(dx * dx + dy * dy), maxDist)
+          const angle = Math.atan2(dy, dx)
+          const nx = (Math.cos(angle) * dist) / maxDist
+          const ny = (Math.sin(angle) * dist) / maxDist
+          setPos({ x: nx * 30, y: ny * 30 })
+          onMove(nx, ny)
+          break
+        }
       }
     }
-  }, [onMove])
 
-  const handleEnd = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      if (e.changedTouches[i].identifier === touchId.current) {
-        touchId.current = null
-        setActive(false)
-        setPos({ x: 0, y: 0 })
-        onRelease()
-        break
+    const handleEnd = (e: TouchEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchId.current) {
+          touchId.current = null
+          setActive(false)
+          setPos({ x: 0, y: 0 })
+          onRelease()
+          break
+        }
       }
     }
-  }, [onRelease])
+
+    el.addEventListener('touchstart', handleStart, { passive: false })
+    el.addEventListener('touchmove', handleMove, { passive: false })
+    el.addEventListener('touchend', handleEnd, { passive: false })
+    el.addEventListener('touchcancel', handleEnd, { passive: false })
+
+    return () => {
+      el.removeEventListener('touchstart', handleStart)
+      el.removeEventListener('touchmove', handleMove)
+      el.removeEventListener('touchend', handleEnd)
+      el.removeEventListener('touchcancel', handleEnd)
+    }
+  }, [onMove, onRelease])
 
   return (
     <div
       ref={baseRef}
-      onTouchStart={handleStart}
-      onTouchMove={handleMove}
-      onTouchEnd={handleEnd}
-      onTouchCancel={handleEnd}
       style={{
         position: 'absolute',
         bottom: 30,
@@ -96,23 +112,23 @@ function VirtualJoystick({ onMove, onRelease, side }: VirtualJoystickProps) {
         width: 120,
         height: 120,
         borderRadius: '50%',
-        background: 'rgba(255,255,255,0.1)',
-        border: '2px solid rgba(255,255,255,0.3)',
+        background: 'rgba(255,255,255,0.15)',
+        border: '2px solid rgba(255,255,255,0.4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         touchAction: 'none',
-        zIndex: 100,
-        pointerEvents: 'auto',
+        zIndex: 1000,
       }}
     >
       <div style={{
         width: 50,
         height: 50,
         borderRadius: '50%',
-        background: active ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
+        background: active ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
         transform: `translate(${pos.x}px, ${pos.y}px)`,
         transition: active ? 'none' : 'transform 0.15s',
+        pointerEvents: 'none',
       }} />
     </div>
   )
