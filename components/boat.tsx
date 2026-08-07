@@ -515,10 +515,10 @@ function BoatCharacter({ level }: { level: number }) {
     if (mixerRef.current) mixerRef.current.update(Math.min(delta, 0.05))
   })
 
-  // Position character per boat type (racing boat sits lower)
-  const charOffsets = [-0.02, -0.02, -0.05]
-  const yPos = charOffsets[Math.min(level, charOffsets.length) - 1]
-  return <group ref={groupRef} position={[0, yPos, 0]} />
+  // Position character per boat type (racing boat sits lower and toward back)
+  const charOffsets: [number, number, number][] = [[0, -0.02, 0], [0, -0.02, 0], [0, -0.05, -0.03]]
+  const pos = charOffsets[Math.min(level, charOffsets.length) - 1]
+  return <group ref={groupRef} position={pos} />
 }
 
 const WakePoints = forwardRef<THREE.Points, { positions: Float32Array; alphas: Float32Array }>(
